@@ -1,0 +1,39 @@
+name: attest-provenance-sbom
+description: 'Attest the SBOM and provenance files'
+
+inputs:
+  is-release:
+    description: 'Whether this is a release build'
+    required: true
+  sbom-file:
+    description: 'The SBOM file to generate and attest'
+    required: true
+  sbom-path:
+    description: 'Path to the SBOM file to generate and attest'
+    required: true
+  subject-path:
+    description: 'Path to the subject artifact to attest (e.g. the built executable)'
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Attest build provenance
+      uses: actions/attest-build-provenance@v3
+      if: ${{ inputs.is-release == 'true' }}
+      with:
+        subject-path: ${{ inputs.subject-path }}
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        output-file: ${{ inputs.sbom-file }}
+        path: ${{ inputs.sbom-path }}
+
+    - name: Attest SBOM
+      uses: actions/attest-sbom@v3
+      if: ${{ inputs.is-release == 'true' }}
+      with:
+        sbom-path: ${{ inputs.sbom-file }}
+        subject-path: ${{ inputs.subject-path }}

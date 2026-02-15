@@ -1,0 +1,548 @@
+name: 'reusable CI/CD workflow'
+
+on:
+  workflow_call:
+    inputs:
+      sonar-key:
+        description: 'The key of the Sonar project to analyze'
+        type: string
+        required: true
+      docker-attest-provenance-and-sbom:
+        description: 'Whether to attest Docker image build provenance and SBOM'
+        type: boolean
+        required: false
+        default: true
+      docker-publish-project:
+        description: 'The .NET project path to publish via .NET SDK Container Building Tools'
+        type: string
+        required: false
+      dotnet-cache-dependencies-via-lock-file:
+        description: 'Whether to cache .NET dependencies using the packages.lock.json file'
+        type: boolean
+        required: false
+        default: true
+      dotnet-test-additional-params-unit-integration-tests:
+        description: 'Any additional parameters for the .NET unit and integration test run'
+        type: string
+        required: false
+      requires-docker-login:
+        description: 'Whether this workflow must access Docker'
+        type: boolean
+        required: false
+        default: false
+      sonar-additional-params:
+        description: 'Any additional parameters for the .NET Sonar scan'
+        type: string
+        required: false
+        default: '/d:sonar.cs.opencover.reportsPaths=Tests/coverage.opencover.xml /s:$GITHUB_WORKSPACE/SonarQube.Analysis.xml'
+
+    secrets:
+      sonar-token:
+        description: 'The Sonar token'
+        required: true
+
+    outputs:
+      is_release:
+        description: 'Whether this is a release (i.e. a Git commit starting with "chore(release)") or not'
+        value: ${{ jobs.determine_release_information.outputs.is_release }}
+      pre_release_version:
+        description: 'The pre-release version (if not a release)'
+        value: ${{ jobs.determine_release_information.outputs.pre_release_version }}
+      release_notes:
+        description: 'The release notes (if a release)'
+        value: ${{ jobs.determine_release_information.outputs.release_notes }}
+      release_version:
+        description: 'The release version (if a release)'
+        value: ${{ jobs.determine_release_information.outputs.release_version }}
+      version:
+        description: 'The version (release or pre-release)'
+        value: ${{ jobs.determine_release_information.outputs.version }}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+jobs:
+  determine_docker_publish_needed:
+    name: 'Determine whether Docker publish is needed'
+    runs-on: ubuntu-latest
+
+    outputs:
+      docker-publish-needed: ${{ steps.determine-docker-publish-mode.outputs.docker-publish-needed }}
+
+    steps:
+      - name: Determine Docker publish needed
+        id: determine-docker-publish-mode
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${{ inputs.docker-publish-project }}")) {
+            Write-Output "docker-publish-needed=false" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "docker-publish-needed=true" >> $env:GITHUB_OUTPUT
+          }
+
+  unit_integration_tests_and_sonar:
+    name: '.NET Unit & Integration Tests and SonarQube'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
+          cache-dependency-path: '**/packages.lock.json'
+          global-json-file: global.json
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: microsoft
+          java-version: 21
+
+      - name: Login to Container registry
+        if: inputs.requires-docker-login == true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore
+
+      - name: Restore SonarQube packages from cache
+        uses: actions/cache@v4
+        with:
+          key: sonar-${{ runner.os }}
+          path: ~/.sonar/cache
+
+      - name: Begin SonarQube scan for .NET
+        env:
+          ENV_SONAR_TOKEN: ${{ secrets.sonar-token }}
+        run: |
+          dotnet tool run dotnet-sonarscanner \
+            begin \
+            /k:${{ inputs.sonar-key }} \
+            /o:mu88 \
+            /d:sonar.token=${{ env.ENV_SONAR_TOKEN }} \
+            ${{ inputs.sonar-additional-params }}
+
+      - name: .NET Build
+        run: dotnet build --no-restore
+
+      - name: Run .NET unit and integration tests and collect coverage
+        run: |
+          dotnet test \
+            --no-build \
+            --filter 'TestCategory=Unit|TestCategory=Integration' \
+            --logger trx \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            ${{ inputs.dotnet-test-additional-params-unit-integration-tests }}
+
+      - name: End SonarQube scan for .NET
+        env:
+          ENV_SONAR_TOKEN: ${{ secrets.sonar-token }}
+        run: dotnet tool run dotnet-sonarscanner end /d:sonar.token=${{ env.ENV_SONAR_TOKEN }}
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }} 
+        with:
+          fail-on-empty: false
+          name: dotnet unit and integration tests
+          path: '**/*.trx'
+          reporter: dotnet-trx
+
+  performance_tests:
+    name: '.NET Performance Tests'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
+          cache-dependency-path: '**/packages.lock.json'
+          global-json-file: global.json
+
+      - name: Login to Container registry
+        if: inputs.requires-docker-login == true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore
+
+      - name: .NET Build
+        run: dotnet build --no-restore
+
+      - name: Run .NET performance tests
+        run: dotnet test --no-build --filter 'TestCategory=Performance' --logger trx
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }} 
+        with:
+          fail-on-empty: false
+          name: dotnet performance tests
+          path: '**/*.trx'
+          reporter: dotnet-trx
+
+  system_tests:
+    name: '.NET System Tests'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
+          cache-dependency-path: '**/packages.lock.json'
+          global-json-file: global.json
+
+      - name: Login to Container registry
+        if: inputs.requires-docker-login == true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore
+
+      - name: .NET Build
+        run: dotnet build --no-restore
+
+      - name: Run .NET system tests
+        run: dotnet test --no-build --filter 'TestCategory=System' --logger trx
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }} 
+        with:
+          fail-on-empty: false
+          name: dotnet system tests
+          path: '**/*.trx'
+          reporter: dotnet-trx
+
+  determine_release_information:
+    name: 'Determine release information'
+    runs-on: ubuntu-latest
+    
+    outputs:
+      is_release: ${{ steps.determine-release-information.outputs.is_release }}
+      pre_release_version: ${{ steps.bump-prerelease-version.outputs.pre_release_version }}
+      release_notes: ${{ steps.changelog.outputs.release_notes }}
+      release_version: ${{ steps.determine-release-information.outputs.release_version }}
+      version: ${{ steps.determine-version.outputs.version }}
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # otherwise Versionize cannot read the Git history and the pre-release version cannot be bumped
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Determine release information from commit message
+        id: determine-release-information
+        shell: pwsh
+        run: |
+          $commitMsg = '${{ github.event.head_commit.message }}'
+          $defaultBranch = "${{ github.event.repository.default_branch }}"
+          $refName = "${{ github.ref_name }}"
+
+          $regex = '^chore\(release\):\s*(\S*)'
+          $isRelease = $false
+          $releaseVersion = ''
+
+          if ($commitMsg -match $regex) {
+            if ($refName -ne $defaultBranch) {
+              Write-Host 'Releases must be created on the default branch only.'
+              exit 1
+            }
+            $releaseVersion = $Matches[1]
+            $isRelease = $true
+          }
+
+          Write-Host "release_version=$releaseVersion"
+          Write-Output "release_version=$releaseVersion" >> $env:GITHUB_OUTPUT
+          Write-Output "is_release=$isRelease" >> $env:GITHUB_OUTPUT
+
+      - name: Determine release notes
+        id: changelog
+        shell: pwsh
+        run: |
+          if ("${{ steps.determine-release-information.outputs.is_release }}" -ne 'true') {
+            Write-Output 'release_notes=' >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          # Generate release notes (non-fatal) and save to runner temp
+          $releaseNotesFile = Join-Path $env:RUNNER_TEMP 'release_notes.md'
+          & dotnet tool run versionize changelog -v ${{ steps.determine-release-information.outputs.release_version }} > $releaseNotesFile
+          $release_notes = Get-Content -Path $releaseNotesFile -Raw
+          Write-Host 'Determined release notes:'
+          Write-Host $release_notes
+
+          if ([string]::IsNullOrWhiteSpace($release_notes)) {
+            Write-Error 'No release notes determined, something went wrong.'
+            exit 1
+          }
+
+          # Use GitHub Actions multiline output syntax to safely pass release notes
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'release_notes<<EOF'
+          Get-Content -Path $releaseNotesFile | ForEach-Object { Add-Content -Path $env:GITHUB_OUTPUT -Value $_ }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'EOF'
+
+      - name: Bump pre-release version
+        id: bump-prerelease-version
+        shell: pwsh
+        run: |
+          if ("${{ steps.determine-release-information.outputs.is_release }}" -eq 'true') {
+            Write-Host 'This is a release, skipping pre-release version bump.'
+            Write-Output 'pre_release_version=' >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          # Although no commit or tag is made, we still need to set the git user to avoid Versionize errors
+          git config --global user.name 'John Doe'
+          git config --global user.email 'johndoe@example.com'
+
+          dotnet tool run versionize `
+            --pre-release "alpha-${{ github.run_number }}-${{ github.run_attempt }}" `
+            --skip-commit `
+            --skip-tag `
+            --find-release-commit-via-message
+
+          [xml]$projectFile = Get-Content -Path 'Directory.Build.props'
+          $version = $projectFile.Project.PropertyGroup.Version
+          Write-Host "Read version $version from Directory.Build.props"
+          Write-Output "pre_release_version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Determine version (release or non-release)
+        id: determine-version
+        shell: pwsh
+        run: |
+          if ("${{ steps.determine-release-information.outputs.is_release }}" -eq 'true') {
+            Write-Host "Release version is already set to ${{ steps.determine-release-information.outputs.release_version }}"
+            Write-Output "version=${{ steps.determine-release-information.outputs.release_version }}" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "Using pre-release version ${{ steps.bump-prerelease-version.outputs.pre_release_version }}"
+            Write-Output "version=${{ steps.bump-prerelease-version.outputs.pre_release_version }}" >> $env:GITHUB_OUTPUT
+          }
+
+  docker:
+    name: 'Build and push Docker images'
+    runs-on: ubuntu-latest
+    if: needs.determine_docker_publish_needed.outputs.docker-publish-needed == 'true'
+
+    needs:
+      - determine_docker_publish_needed
+      - determine_release_information
+
+    outputs:
+      digests: ${{ steps.extract-digests.outputs.digests }}
+      image_name: ${{ steps.determine-image-name.outputs.image_name }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
+          cache-dependency-path: '**/packages.lock.json'
+          global-json-file: global.json
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Login to Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore
+
+      - name: Get GitHub repository description
+        id: get-repo-description
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $repoDescription = gh repo view "${{ github.repository }}" --json description -q ".description"
+          if ([string]::IsNullOrWhiteSpace($repoDescription) -or "$repoDescription" -eq 'null') {
+            $repoDescription = 'No description configured for repository ${{ github.repository }}.'
+          }
+
+          Write-Host "Determined repository description: $repoDescription"
+          Write-Output "description=$repoDescription" >> $env:GITHUB_OUTPUT
+
+      - name: Determine Docker image name
+        id: determine-image-name
+        shell: pwsh
+        run: |
+          $imageName = dotnet msbuild "${{ inputs.docker-publish-project }}" /t:PrecomputeFullyQualifiedImage `--getProperty:ComputedFullyQualifiedImage
+          Write-Host "Determined Docker image name: $imageName"
+          Write-Output "image_name=$imageName" >> $env:GITHUB_OUTPUT
+
+      - name: Build and push Docker
+        id: build-and-push-docker
+        shell: pwsh
+        run: |
+          dotnet publish ${{ inputs.docker-publish-project }} `
+            --no-restore `
+            /t:PublishContainersForMultipleFamilies `
+            /p:ReleaseVersion=${{ needs.determine_release_information.outputs.version }} `
+            /p:IsRelease=${{ needs.determine_release_information.outputs.is_release }} `
+            /p:ContainerDescription="""${{ steps.get-repo-description.outputs.description }}""" `
+            --getItem:GeneratedImages >> ${{ runner.temp }}/GeneratedImages.json
+
+          $generatedImagesContent = Get-Content -Raw -Path "${{ runner.temp }}/GeneratedImages.json"
+          Write-Host "GeneratedImages.json content:`n$generatedImagesContent"
+
+      - name: Extract generated Docker image digests
+        if: inputs.docker-attest-provenance-and-sbom == true
+        id: extract-digests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          $digests = New-Object System.Collections.Generic.List[string]
+
+          # Read the JSON file to get the list of generated images
+          $raw = Get-Content -Raw -Path "${{ runner.temp }}/GeneratedImages.json"
+          $msBuildOutput = ConvertFrom-Json $raw
+
+          # Iterate over each generated image and get its digest based on the fully qualified image name with tag
+
+          foreach ($item in $msBuildOutput.Items.GeneratedImages) {
+            $fullyQualifiedImageWithTag = $item.FullyQualifiedImageWithTag
+            Write-Host "Processing image: $fullyQualifiedImageWithTag"
+            docker pull $fullyQualifiedImageWithTag
+
+            # Check if the image is a multi-platform image
+            $manifestJson = docker manifest inspect $fullyQualifiedImageWithTag 2>$null | ConvertFrom-Json
+            if ($manifestJson -and $manifestJson.manifests) {
+              # Multi-platform image: iterate over each platform and get its digest
+              foreach ($platform in $manifestJson.manifests) {
+                $platformDigest = $platform.digest
+                if (-not [string]::IsNullOrWhiteSpace($platformDigest)) {
+                  Write-Host "Found platform digest: $platformDigest"
+                  $digests.Add($platformDigest.Trim())
+                }
+              }
+            }
+            
+            $digestOutput = docker inspect --format='{{index .RepoDigests 0}}' $fullyQualifiedImageWithTag | ForEach-Object {
+              if ($_ -match '@(sha256:[a-f0-9]{64})$') {
+                return $Matches[1]
+              } else {
+                return $null
+              }
+            }
+            if (-not [string]::IsNullOrWhiteSpace($digestOutput)) {
+              $digests.Add($digestOutput.Trim())
+            }
+          }
+
+          # Deduplicate while preserving order
+          $uniqueDigests = New-Object System.Collections.Generic.List[string]
+          $seenDigests = [System.Collections.Generic.HashSet[string]]::new()
+          foreach ($digest in $digests) {
+            if ([string]::IsNullOrWhiteSpace($digest)) {
+              continue
+            }
+
+            if (-not $seenDigests.Contains($digest)) {
+              $null = $seenDigests.Add($digest)
+              $uniqueDigests.Add($digest)
+            }
+          }
+
+          if ($uniqueDigests.Count -eq 0) {
+            $json = '[]'
+          } else {
+            $json = ($uniqueDigests | ConvertTo-Json -Compress)
+          }
+
+          Write-Output "digests=$json" >> $env:GITHUB_OUTPUT
+
+  attest_provenance_sbom:
+    name: 'Attest Docker image build provenance and SBOM'
+    runs-on: ubuntu-latest
+    if: inputs.docker-attest-provenance-and-sbom == true && needs.determine_docker_publish_needed.outputs.docker-publish-needed == 'true'
+
+    needs:
+      - determine_docker_publish_needed
+      - determine_release_information
+      - docker
+
+    strategy:
+      matrix:
+        digest: ${{ fromJson(needs.docker.outputs.digests) }}
+
+    steps:
+      - name: Login to Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          push-to-registry: true
+          subject-name: ${{ needs.docker.outputs.image_name }}
+          subject-digest: ${{ matrix.digest }}
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ needs.docker.outputs.image_name }}@${{ matrix.digest }}
+          output-file: sbom.json
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v3
+        with:
+          push-to-registry: true
+          sbom-path: sbom.json
+          subject-name: ${{ needs.docker.outputs.image_name }}
+          subject-digest: ${{ matrix.digest }}
