@@ -1,0 +1,121 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "mu88's default preset",
+  "extends": [
+    "config:base",
+    "group:all",
+    ":semanticCommitTypeAll(chore)",
+    "schedule:earlyMondays"
+  ],
+  "packageRules": [
+    {
+      "description": "Automatically merge updates",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Wait with non-major updates of .NET SDK and runtime (global.json and Docker images) so that it is likely to be installed on all dev machines, too",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "matchPackageNames": [
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "mcr.microsoft.com/dotnet/sdk",
+        "mcr.microsoft.com/dotnet/aspnet",
+        "mcr.microsoft.com/dotnet/runtime",
+        "mcr.microsoft.com/dotnet/runtime-deps"
+      ],
+      "minimumReleaseAge": "21 days",
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Major updates of .NET SDK and runtime will be done manually",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "mcr.microsoft.com/dotnet/sdk",
+        "mcr.microsoft.com/dotnet/aspnet",
+        "mcr.microsoft.com/dotnet/runtime",
+        "mcr.microsoft.com/dotnet/runtime-deps",
+        "Microsoft.AspNetCore*",
+        "Microsoft.Bcl*",
+        "Microsoft.EntityFrameworkCore*",
+        "Microsoft.Extensions.*",
+        "System.Text.Json"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\S*\\.csproj$"
+      ],
+      "matchStrings": [
+        "<ContainerBaseImage>(?<packageName>\\S+):(?<currentValue>\\S+)<\/ContainerBaseImage>"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\S*\\.csproj$"
+      ],
+      "matchStrings": [
+        "<CustomContainerBaseImageVersion>(?<currentValue>\\S+)<\/CustomContainerBaseImageVersion>"
+      ],
+      "datasourceTemplate": "dotnet-version",
+      "packageNameTemplate": "dotnet-runtime"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\S*\\.devcontainer\\/devcontainer\\.json$"
+      ],
+      "matchStrings": [
+        "image\\S*mu88\\/devcontainers-dotnet\\S*:sdk-(?<currentValue>\\d+\\.\\d+\\.\\d+)\\S*"
+      ],
+      "datasourceTemplate": "dotnet-version",
+      "packageNameTemplate": "dotnet-sdk"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        ".*"
+      ],
+      "matchStrings": [
+        "\\S*mcr\\.microsoft\\.com\\/dotnet\\/aspnet:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*",
+        "\\S*mcr\\.microsoft\\.com\\/dotnet\\/runtime:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*",
+        "\\S*mcr\\.microsoft\\.com\\/dotnet\\/runtime-deps:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*"
+      ],
+      "datasourceTemplate": "dotnet-version",
+      "packageNameTemplate": "dotnet-runtime"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\S*$"
+      ],
+      "matchStrings": [
+        "\\S*mcr\\.microsoft\\.com\\/dotnet\\/sdk:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*"
+      ],
+      "datasourceTemplate": "dotnet-version",
+      "packageNameTemplate": "dotnet-sdk"
+    }
+  ]
+}
