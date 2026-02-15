@@ -53,6 +53,8 @@ runs:
 
     - name: Pre-build dev container image '${{ inputs.dev-container-name }}'
       uses: devcontainers/ci@v0.3
+      env:
+        DOTNET_SDK_VERSION: ${{ inputs.dotnet-sdk-version }}
       with:
         imageName: ghcr.io/mu88/devcontainers-${{ inputs.dev-container-name }}
         cacheFrom: ghcr.io/mu88/devcontainers-${{ inputs.dev-container-name }}
