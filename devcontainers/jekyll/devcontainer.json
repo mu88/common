@@ -1,0 +1,37 @@
+{
+  "name": "Jekyll",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [
+    4000
+  ],
+  "postCreateCommand": "jekyll build; jekyll serve --watch --force_polling --verbose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "eriklynd.json-tools",
+        "github.vscode-github-actions",
+        "github.copilot-chat",
+        "github.copilot",
+        "ms-vscode.powershell",
+        "ms-vscode.vscode-loc-en"
+      ],
+      "settings": {
+        "git.allowForcePush": true,
+        "locale": "en",
+        "powershell.developerTools.enableTelemetry": false,
+        "terminal.integrated.defaultProfile.linux": "pwsh",
+        "terminal.integrated.profiles.linux": {
+          "pwsh": {
+            "path": "/usr/bin/pwsh",
+            "args": [
+              "-NoLogo"
+            ]
+          }
+        },
+        "workbench.startupEditor": "none"
+      }
+    }
+  }
+}

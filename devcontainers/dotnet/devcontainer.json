@@ -1,0 +1,44 @@
+{
+  "name": "C# (.NET)",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0-noble", // deliberately using an older major version to ensure that exactly the version specified in the feature gets installed. Otherwise, the latest version of the image would be used as there is no tag for e.g. 9.0.200, but only 9.0, which would be the latest version of the 9.x series.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "${localEnv:dotnet_sdk_version:10.0.103}"
+    },
+    "ghcr.io/devcontainers/features/powershell:1": {}
+  },
+  "postCreateCommand": "git clean -xdf -e '.idea' -e '*.DotSettings.user'; dotnet dev-certs https --trust; dotnet tool restore; dotnet restore", // see https://github.com/microsoft/vscode-remote-release/issues/9099
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "eriklynd.json-tools",
+        "github.vscode-github-actions",
+        "github.copilot-chat",
+        "github.copilot",
+        "ms-dotnettools.csdevkit",
+        "ms-vscode.powershell",
+        "ms-vscode.vscode-loc-en"
+      ],
+      "settings": {
+        "git.allowForcePush": true,
+        "locale": "en",
+        "powershell.developerTools.enableTelemetry": false,
+        "terminal.integrated.defaultProfile.linux": "pwsh",
+        "terminal.integrated.profiles.linux": {
+          "pwsh": {
+            "path": "/usr/bin/pwsh",
+            "args": [
+              "-NoLogo"
+            ]
+          }
+        },
+        "workbench.startupEditor": "none"
+      }
+    }
+  },
+  "containerEnv": {
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "containerUser": "vscode" // see https://github.com/orgs/community/discussions/155456
+}
