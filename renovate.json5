@@ -1,20 +1,30 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>mu88/common//renovate/default"],
+  "extends": [
+    "github>mu88/common//renovate/default.json5"
+  ],
   "customManagers": [
     {
       "description": "The .NET SDK default version when building the .NET dev container in case no version is provided (e.g. not within a GitHub Action or forgotten to set the environment variable)",
       "customType": "regex",
-      "fileMatch": [".*/devcontainer.json"],
-      "matchStrings": [".*dotnet_sdk_version.*(?<currentValue>\\d+\\.\\d+\\.\\d+).*"],
+      "fileMatch": [
+        ".*/devcontainer.json"
+      ],
+      "matchStrings": [
+        ".*dotnet_sdk_version.*(?<currentValue>\\d+\\.\\d+\\.\\d+).*"
+      ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
     },
     {
       "description": "The .NET SDK default for regular (i.e. not manually triggered) GitHub Action runs for building dev containers",
       "customType": "regex",
-      "fileMatch": ["\\.github/workflows/_internal-build-devcontainers.yml"],
-      "matchStrings": [".*default_dotnet_sdk_version.*(?<currentValue>\\d+\\.\\d+\\.\\d+).*"],
+      "fileMatch": [
+        "\\.github/workflows/_internal-build-devcontainers.yml"
+      ],
+      "matchStrings": [
+        ".*default_dotnet_sdk_version.*(?<currentValue>\\d+\\.\\d+\\.\\d+).*"
+      ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
     }
