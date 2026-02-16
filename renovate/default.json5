@@ -22,6 +22,17 @@
       "automergeType": "branch"
     },
     {
+      "description": "Automatically immediately merge new digests from mu88/common as they don't have a timestamp",
+      "matchDepNames": [
+        "mu88/common"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
       "description": "Wait with non-major updates of .NET SDK and runtime (global.json and Docker images) so that it is likely to be installed on all dev machines, too",
       "matchUpdateTypes": [
         "minor",
