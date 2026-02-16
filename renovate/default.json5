@@ -15,22 +15,9 @@
       "matchUpdateTypes": [
         "major",
         "minor",
-        "patch",
-        "digest"
+        "patch"
       ],
       "minimumReleaseAge": "14 days",
-      "automerge": true,
-      "automergeType": "branch"
-    },
-    {
-      "description": "Automatically immediately merge new digests from mu88/common as they don't have a timestamp",
-      "matchDepNames": [
-        "mu88/common"
-      ],
-      "matchUpdateTypes": [
-        "digest"
-      ],
-      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "automerge": true,
       "automergeType": "branch"
     },
