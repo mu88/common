@@ -8,6 +8,7 @@
     "schedule:officeHours",
     "schedule:automergeOfficeHours"
   ],
+  "mode": "full",
   "packageRules": [
     {
       "description": "Automatically merge updates",
