@@ -11,6 +11,9 @@ on:
       - '*'
     branches:
       - '**'
+    paths:
+      - ".devcontainer/**"
+      - "devcontainers/**"
 
 env:
   DEFAULT_dotnet-sdk-version: 10.0.103
