@@ -5,8 +5,8 @@
     "config:base",
     "group:all",
     ":semanticCommitTypeAll(chore)",
-    "schedule:officeHours",
-    "schedule:automergeOfficeHours"
+    "schedule:earlyMondays",
+    "schedule:automergeEarlyMondays"
   ],
   "mode": "full",
   "packageRules": [
