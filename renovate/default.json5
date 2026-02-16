@@ -100,7 +100,7 @@
         "^\\S*\\.devcontainer\\/devcontainer\\.json$"
       ],
       "matchStrings": [
-        "image\\S*mu88\\/devcontainers-dotnet\\S*:sdk-(?<currentValue>\\d+\\.\\d+\\.\\d+)\\S*"
+        "\"image\":\\s*\"\\S*mu88\\/devcontainers-dotnet\\S*:sdk-(?<currentValue>\\d+\\.\\d+\\.\\d+)\\S*"
       ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
