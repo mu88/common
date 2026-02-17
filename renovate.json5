@@ -3,10 +3,10 @@
   "extends": [
     "github>mu88/common//renovate/default.json5"
   ],
-  {
-    "devcontainer": {
-      "managerFilePatterns": ["/^devcontainers\\/\\S+\\/devcontainer\\.json$/"]
-    }
+  "devcontainer": {
+    "managerFilePatterns": [
+      "/^devcontainers\\/\\S+\\/devcontainer\\.json$/"
+    ]
   },
   "packageRules": [
     {
