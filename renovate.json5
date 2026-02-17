@@ -24,6 +24,16 @@
       "minimumReleaseAge": "1 days",
       "automerge": true,
       "automergeType": "branch"
+    },
+    {
+      "description": "An older major version is deliberately used to ensure that exactly the version specified in the feature gets installed. Otherwise, the latest version of the image would be used as there is no tag for e.g. 9.0.200, but only 9.0, which would be the latest version of the 9.x series.",
+      "matchPackageNames": [
+        "mcr.microsoft.com/devcontainers/dotnet"
+      ],
+      "matchFileNames": [
+        "devcontainers/dotnet/devcontainer.json"
+      ],
+      "enabled": false
     }
   ],
   "customManagers": [
