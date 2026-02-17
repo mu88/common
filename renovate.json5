@@ -3,7 +3,7 @@
   "extends": [
     "github>mu88/common//renovate/default.json5"
   ],
-  "packageRules:" [
+  "packageRules": [
     {
       "description": "Non-major updates of .NET SDK can be integrated into dev containers immediately after the release, because these dev containers won't be immediately used by downstream repositories, i.e. it's safe to already have them.",
       "matchUpdateTypes": [
