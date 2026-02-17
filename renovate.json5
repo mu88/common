@@ -3,6 +3,24 @@
   "extends": [
     "github>mu88/common//renovate/default.json5"
   ],
+  "packageRules:" [
+    {
+      "description": "Non-major updates of .NET SDK can be integrated into dev containers immediately after the release, because these dev containers won't be immediately used by downstream repositories, i.e. it's safe to already have them.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "dotnet-sdk"
+      ],
+      "matchFileNames": [
+        "devcontainers/**"
+      ],
+      "minimumReleaseAge": "1 days",
+      "automerge": true,
+      "automergeType": "branch"
+    }
+  ],
   "customManagers": [
     {
       "description": "The .NET SDK default version when building the .NET dev container in case no version is provided (e.g. not within a GitHub Action or forgotten to set the environment variable)",
