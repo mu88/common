@@ -116,7 +116,7 @@ jobs:
         run: dotnet restore
 
       - name: Restore SonarQube packages from cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: sonar-${{ runner.os }}
           path: ~/.sonar/cache
