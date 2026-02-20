@@ -141,8 +141,8 @@ jobs:
             --no-build \
             --filter 'TestCategory=Unit|TestCategory=Integration' \
             --logger trx \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=opencover \
+            -p:CollectCoverage=true \
+            -p:CoverletOutputFormat=opencover \
             ${{ inputs.dotnet-test-additional-params-unit-integration-tests }}
 
       - name: End SonarQube scan for .NET
@@ -419,18 +419,19 @@ jobs:
         run: |
           dotnet publish ${{ inputs.docker-publish-project }} `
             --no-restore `
-            /t:PublishContainersForMultipleFamilies `
-            /p:ReleaseVersion=${{ needs.determine_release_information.outputs.version }} `
-            /p:IsRelease=${{ needs.determine_release_information.outputs.is_release }} `
-            /p:ContainerDescription="""${{ steps.get-repo-description.outputs.description }}""" `
-            --getProperty:ComputedFullyQualifiedImage `
-            --getItem:GeneratedImages >> ${{ runner.temp }}/BuildOutput.json
+            -t:PublishContainersForMultipleFamilies `
+            -p:ReleaseVersion=${{ needs.determine_release_information.outputs.version }} `
+            -p:IsRelease=${{ needs.determine_release_information.outputs.is_release }} `
+            -p:ContainerDescription="""${{ steps.get-repo-description.outputs.description }}""" `
+            -getProperty:ComputedFullyQualifiedImageName `
+            -getItem:GeneratedImages `
+            -getResultOutputFile:${{ runner.temp }}/BuildOutput.json
 
           $msBuildRawOutput = Get-Content -Raw -Path "${{ runner.temp }}/BuildOutput.json"
           Write-Host "BuildOutput.json content:`n$msBuildRawOutput"
 
           $msBuildOutput = ConvertFrom-Json $msBuildRawOutput
-          $imageName = $msBuildOutput.Properties.ComputedFullyQualifiedImage
+          $imageName = $msBuildOutput.Properties.ComputedFullyQualifiedImageName
           Write-Host "Determined Docker image name: $imageName"
           Write-Output "image_name=$imageName" >> $env:GITHUB_OUTPUT
 
