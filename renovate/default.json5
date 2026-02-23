@@ -4,9 +4,13 @@
   "extends": [
     "config:base",
     "group:all",
-    ":semanticCommitTypeAll(chore)",
-    "schedule:earlyMondays",
-    "schedule:automergeEarlyMondays"
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "schedule": [
+    "*/30 7-17 * * 1"
+  ],
+  "automergeSchedule": [
+    "* 7-17 * * 1"
   ],
   "mode": "full",
   "packageRules": [
