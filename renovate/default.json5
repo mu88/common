@@ -13,28 +13,26 @@
     "* 7-17 * * 1"
   ],
   "mode": "full",
+  "minimumReleaseAge": "14 days",
+  "automerge": true,
+  "automergeType": "branch",
   "packageRules": [
     {
-      "description": "Automatically merge updates",
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
+      "description": "Immediately merge updates of my own NuGet package as I'm in charge of those.",
+      "matchPackageNames": [
+        "mu88.Shared"
       ],
-      "minimumReleaseAge": "14 days",
-      "automerge": true,
-      "automergeType": "branch"
+      "minimumReleaseAge": "0 minutes"
     },
     {
-      "description": "Automatically immediately merge new digests from mu88/common as they don't have a timestamp",
+      "description": "Immediately merge new digests from mu88/common as they don't have a timestamp",
       "matchDepNames": [
         "mu88/common"
       ],
       "matchUpdateTypes": [
         "digest"
       ],
-      "automerge": true,
-      "automergeType": "branch"
+      "minimumReleaseAge": "0 minutes"
     },
     {
       "description": "Wait with non-major updates of .NET SDK and runtime (global.json and Docker images) so that it is likely to be installed on all dev machines, too",
@@ -51,9 +49,7 @@
         "mcr.microsoft.com/dotnet/runtime",
         "mcr.microsoft.com/dotnet/runtime-deps"
       ],
-      "minimumReleaseAge": "21 days",
-      "automerge": true,
-      "automergeType": "branch"
+      "minimumReleaseAge": "21 days"
     },
     {
       "description": "Major updates of .NET SDK and runtime will be done manually",
