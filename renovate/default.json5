@@ -126,7 +126,9 @@
     {
       "customType": "regex",
       "fileMatch": [
-        ".*"
+        "(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$",
+        "(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$",
+        "(^|/)(?:docker-)?compose[^/]*\\.ya?ml$"
       ],
       "matchStrings": [
         "\\S*mcr\\.microsoft\\.com\\/dotnet\\/aspnet:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*",
@@ -139,7 +141,9 @@
     {
       "customType": "regex",
       "fileMatch": [
-        "^\\S*$"
+        "(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$",
+        "(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$",
+        "(^|/)(?:docker-)?compose[^/]*\\.ya?ml$"
       ],
       "matchStrings": [
         "\\S*mcr\\.microsoft\\.com\\/dotnet\\/sdk:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*"
