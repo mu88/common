@@ -6,6 +6,24 @@
     "group:all",
     ":semanticCommitTypeAll(chore)"
   ],
+  "logLevelRemap": [
+    {
+      "matchMessage": "*as they do not have a releaseTimestamp and we're running with minimumReleaseAgeBehaviour=timestamp-required*",
+      "newLogLevel": "error"
+    },
+    {
+      "matchMessage": "*Preset fetch error*",
+      "newLogLevel": "error"
+    },
+    {
+      "matchMessage": "*Repository has invalid config*",
+      "newLogLevel": "error"
+    },
+    {
+      "matchMessage": "*did not have a releaseTimestamp, but as we're running with minimumReleaseAgeBehaviour=timestamp-optional*",
+      "newLogLevel": "info"
+    }
+  ],
   "schedule": [
     "* 7-17 * * 1"
   ],
