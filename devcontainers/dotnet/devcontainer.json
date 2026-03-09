@@ -6,7 +6,7 @@
     "ghcr.io/devcontainers/features/dotnet:2": {
       "version": "${localEnv:DOTNET_SDK_VERSION:10.0.103}"
     },
-    "ghcr.io/devcontainers/features/powershell:1": {}
+    "ghcr.io/devcontainers/features/powershell:2": {}
   },
   "postCreateCommand": "git clean -xdf -e '.idea' -e '*.DotSettings.user'; dotnet dev-certs https --trust; dotnet tool restore; dotnet restore", // see https://github.com/microsoft/vscode-remote-release/issues/9099
   "customizations": {
