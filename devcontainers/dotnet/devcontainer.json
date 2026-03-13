@@ -1,6 +1,6 @@
 {
   "name": "C# (.NET)",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0-noble", // deliberately using an older major version to ensure that exactly the version specified in the feature gets installed. Otherwise, the latest version of the image would be used as there is no tag for e.g. 9.0.200, but only 9.0, which would be the latest version of the 9.x series.
+  "image": "mcr.microsoft.com/devcontainers/base:noble", // using base image + dotnet feature to pin an exact SDK version (see https://github.com/devcontainers/templates/issues/330)
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/dotnet:2": {
