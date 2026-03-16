@@ -13,7 +13,8 @@
       "description": "Unfortunately, these packages do not return a release timestamp. To prevent Renovate from skipping updates for these packages, we set the minimum release age behavior to 'timestamp-optional' so that updates will be created even without a release timestamp.",
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/powershell",
-        "mcr.microsoft.com/devcontainers/typescript-node"
+        "mcr.microsoft.com/devcontainers/typescript-node",
+        "mcr.microsoft.com/dotnet/sdk"
       ],
       "minimumReleaseAgeBehaviour": "timestamp-optional"
     },
@@ -32,16 +33,6 @@
       "minimumReleaseAge": "1 days",
       "automerge": true,
       "automergeType": "branch"
-    },
-    {
-      "description": "An older major version is deliberately used to ensure that exactly the version specified in the feature gets installed. Otherwise, the latest version of the image would be used as there is no tag for e.g. 9.0.200, but only 9.0, which would be the latest version of the 9.x series.",
-      "matchPackageNames": [
-        "mcr.microsoft.com/devcontainers/dotnet"
-      ],
-      "matchFileNames": [
-        "devcontainers/dotnet/devcontainer.json"
-      ],
-      "enabled": false
     }
   ],
   "customManagers": [
@@ -54,7 +45,8 @@
       "matchStrings": [
         "\\s*\"dotnet_sdk_version\":\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"", // for .devcontainer/devcontainer.json
         "\\s*\"version\":\\s*\"\\${localEnv:DOTNET_SDK_VERSION:(?<currentValue>\\d+\\.\\d+\\.\\d+)}\"", // for devcontainers/dotnet/devcontainer.json
-        "\\s*\"DOTNET_SDK_VERSION\":\\s*\"\\${localEnv:DOTNET_SDK_VERSION:(?<currentValue>\\d+\\.\\d+\\.\\d+)}\"" // for devcontainers/dotnet-playwright/devcontainer.json
+        "\\s*\"DOTNET_SDK_VERSION\":\\s*\"\\${localEnv:DOTNET_SDK_VERSION:(?<currentValue>\\d+\\.\\d+\\.\\d+)}\"", // for devcontainers/dotnet-playwright/devcontainer.json
+        "DOTNET_SDK_VERSION=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"" // for devcontainers/dotnet-playwright/Dockerfile
       ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
