@@ -20,7 +20,7 @@ runs:
 
   steps:
     - name: Attest build provenance
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       if: ${{ inputs.is-release == 'true' }}
       with:
         subject-path: ${{ inputs.subject-path }}
@@ -32,7 +32,7 @@ runs:
         path: ${{ inputs.sbom-path }}
 
     - name: Attest SBOM
-      uses: actions/attest-sbom@v3
+      uses: actions/attest-sbom@v4
       if: ${{ inputs.is-release == 'true' }}
       with:
         sbom-path: ${{ inputs.sbom-file }}
