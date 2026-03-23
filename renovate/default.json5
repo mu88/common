@@ -34,6 +34,15 @@
   "minimumReleaseAge": "14 days",
   "automerge": true,
   "automergeType": "branch",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": true,
+    "labels": [
+      "security"
+    ],
+    "vulnerabilityFixStrategy": "lowest"
+  },
   "packageRules": [
     {
       "description": "Immediately merge updates of my own NuGet package as I'm in charge of those.",
