@@ -34,7 +34,7 @@ on:
         description: 'Any additional parameters for the .NET Sonar scan'
         type: string
         required: false
-        default: '/d:sonar.cs.opencover.reportsPaths=Tests/coverage.opencover.xml /s:$GITHUB_WORKSPACE/SonarQube.Analysis.xml'
+        default: '/s:$GITHUB_WORKSPACE/SonarQube.Analysis.xml'
 
     secrets:
       sonar-token:
@@ -130,6 +130,7 @@ jobs:
             /k:${{ inputs.sonar-key }} \
             /o:mu88 \
             /d:sonar.token=${{ env.ENV_SONAR_TOKEN }} \
+            /d:sonar.cs.vscoveragexml.reportsPaths=Tests/coverage.xml \
             ${{ inputs.sonar-additional-params }}
 
       - name: .NET Build
@@ -137,13 +138,15 @@ jobs:
 
       - name: Run .NET unit and integration tests and collect coverage
         run: |
-          dotnet test \
-            --no-build \
-            --filter 'TestCategory=Unit|TestCategory=Integration' \
-            --logger trx \
-            -p:CollectCoverage=true \
-            -p:CoverletOutputFormat=opencover \
-            ${{ inputs.dotnet-test-additional-params-unit-integration-tests }}
+          dotnet tool run dotnet-coverage collect \
+            --output Tests/coverage.xml \
+            --output-format xml \
+            --settings coverage.settings.xml \
+            -- dotnet test \
+              --no-build \
+              --filter 'TestCategory=Unit|TestCategory=Integration' \
+              --logger trx \
+              ${{ inputs.dotnet-test-additional-params-unit-integration-tests }}
 
       - name: End SonarQube scan for .NET
         env:
