@@ -43,6 +43,9 @@
     ],
     "vulnerabilityFixStrategy": "lowest"
   },
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "branchConcurrentLimit": 0,
   "packageRules": [
     {
       "description": "Immediately merge updates of my own NuGet package as I'm in charge of those.",
