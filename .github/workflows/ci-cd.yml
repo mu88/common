@@ -272,8 +272,10 @@ jobs:
       - name: Determine release information from commit message
         id: determine-release-information
         shell: pwsh
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          $commitMsg = '${{ github.event.head_commit.message }}'
+          $commitMsg = $env:COMMIT_MSG
           $defaultBranch = "${{ github.event.repository.default_branch }}"
           $refName = "${{ github.ref_name }}"
 
