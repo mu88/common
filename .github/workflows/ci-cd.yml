@@ -532,6 +532,8 @@ jobs:
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
+        # On transient Rekor failures, allow non-release builds to proceed; releases must have a valid attestation
+        continue-on-error: ${{ needs.determine_release_information.outputs.is_release != 'true' }}
         with:
           push-to-registry: true
           subject-name: ${{ needs.docker.outputs.image_name }}
@@ -544,9 +546,13 @@ jobs:
           output-file: sbom.json
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v4
+        # Replaces deprecated actions/attest-sbom@v4 (see https://github.com/actions/attest-sbom)
+        uses: actions/attest@v4
+        # On transient Rekor failures, allow non-release builds to proceed; releases must have a valid attestation
+        continue-on-error: ${{ needs.determine_release_information.outputs.is_release != 'true' }}
         with:
           push-to-registry: true
-          sbom-path: sbom.json
+          predicate-type: 'https://spdx.dev/Document'
+          predicate-path: sbom.json
           subject-name: ${{ needs.docker.outputs.image_name }}
           subject-digest: ${{ matrix.digest }}
