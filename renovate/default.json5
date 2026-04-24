@@ -41,7 +41,11 @@
     "labels": [
       "security"
     ],
-    "vulnerabilityFixStrategy": "lowest"
+    "vulnerabilityFixStrategy": "lowest",
+    "schedule": [
+      "at any time"
+    ],
+    "minimumReleaseAge": null
   },
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
