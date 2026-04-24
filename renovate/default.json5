@@ -45,6 +45,9 @@
     "schedule": [
       "at any time"
     ],
+    "automergeSchedule": [
+      "at any time"
+    ],
     "minimumReleaseAge": null
   },
   "prHourlyLimit": 0,
