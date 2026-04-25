@@ -1,0 +1,91 @@
+name: Renovate
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  push:
+    paths:
+      - "renovate/**"
+      - "renovate.json5"
+  workflow_dispatch:
+
+env:
+  RENOVATE_VERSION: "43.141.5"
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate GitHub App token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.MU88_BOT_APP_ID }}
+          private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
+
+      - name: Run Renovate
+        shell: pwsh
+        run: |
+          docker run --rm `
+            -e "RENOVATE_TOKEN=${{ steps.token.outputs.token }}" `
+            -e 'RENOVATE_GIT_AUTHOR=mu88-bot[bot] <3498920+mu88-bot[bot]@users.noreply.github.com>' `
+            -e LOG_LEVEL=debug `
+            -e LOG_FORMAT=json `
+            -e RENOVATE_AUTODISCOVER=true `
+            -e 'RENOVATE_AUTODISCOVER_FILTER=["mu88/*"]' `
+            "ghcr.io/renovatebot/renovate:$env:RENOVATE_VERSION" | Tee-Object -FilePath /tmp/renovate-output.log
+          exit $LASTEXITCODE
+
+      - name: Job Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $logFile = '/tmp/renovate-output.log'
+          if (-not (Test-Path $logFile)) {
+            "## :grey_question: Renovate did not produce output (run may have failed before docker step)" |
+              Out-File -Append $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          $issues = Get-Content $logFile |
+            Where-Object { $_ -match '^\{' } |
+            ForEach-Object { try { $_ | ConvertFrom-Json } catch { $null } } |
+            Where-Object { $_ -ne $null -and $_.level -ge 40 }
+
+          if (-not $issues) {
+            "## :white_check_mark: Renovate completed without warnings or errors" |
+              Out-File -Append $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          $levelLabel = @{ 40 = "WARN"; 50 = "ERROR"; 60 = "FATAL" }
+
+          $hasErrors = $false
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add("## :loudspeaker: Renovate warnings and errors")
+          $lines.Add("")
+
+          $groups = $issues | Group-Object { if ($_.repository) { $_.repository } else { "(global)" } }
+          foreach ($group in $groups) {
+            $lines.Add("### $($group.Name)")
+            $lines.Add("")
+            $lines.Add("| Type | Message |")
+            $lines.Add("| --- | --- |")
+            foreach ($issue in $group.Group) {
+              $level = [int]$issue.level
+              if ($level -ge 50) { $hasErrors = $true }
+              $icon = if ($level -ge 50) { ":x:" } else { ":warning:" }
+              $label = if ($levelLabel.ContainsKey($level)) { $levelLabel[$level] } else { "WARN" }
+              $escapedMsg = $issue.msg -replace '\|', '\|'
+              $lines.Add("| $icon $label | ``$escapedMsg`` |")
+            }
+            $lines.Add("")
+          }
+          $lines | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+          if ($hasErrors) { exit 1 }

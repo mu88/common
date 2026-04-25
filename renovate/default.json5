@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "mu88's default preset",
   "extends": [
-    "config:base",
+    "config:recommended",
     "group:all",
     ":semanticCommitTypeAll(chore)"
   ],

@@ -1,0 +1,80 @@
+name: Validate Renovate config
+
+on:
+  push:
+    paths:
+      - "renovate/**"
+  pull_request:
+    paths:
+      - "renovate/**"
+  workflow_dispatch:
+
+env:
+  RENOVATE_VERSION: "43.141.5"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate renovate/default.json5
+        id: validate_default
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          docker run --rm `
+            --entrypoint renovate-config-validator `
+            -v "${{ github.workspace }}:/tmp/renovate" `
+            "ghcr.io/renovatebot/renovate:$env:RENOVATE_VERSION" `
+            /tmp/renovate/renovate/default.json5 2>&1 | Tee-Object -FilePath /tmp/validate-default.log
+          exit $LASTEXITCODE
+
+      - name: Job Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $results = @(
+            @{ file = "renovate/default.json5"; outcome = "${{ steps.validate_default.outcome }}"; logFile = "/tmp/validate-default.log" }
+          )
+
+          $hasFailures = $false
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add("## Renovate config validation")
+          $lines.Add("")
+          foreach ($result in $results) {
+            $lines.Add("### ``$($result.file)``")
+            $lines.Add("")
+            if ($result.outcome -eq "success") {
+              $lines.Add(":white_check_mark: Validation passed")
+            } else {
+              $hasFailures = $true
+              $lines.Add(":x: Validation failed")
+              $lines.Add("")
+              if (Test-Path $result.logFile) {
+                $entries = Get-Content $result.logFile |
+                  Where-Object { $_ -match '^\s*(WARN|ERROR|FATAL):\s+(.+)$' } |
+                  ForEach-Object {
+                    if ($_ -match '^\s*(WARN|ERROR|FATAL):\s+(.+)$') {
+                      [PSCustomObject]@{ Type = $Matches[1]; Message = $Matches[2].Trim() }
+                    }
+                  }
+                if ($entries) {
+                  $lines.Add("| Type | Message |")
+                  $lines.Add("| --- | --- |")
+                  foreach ($entry in $entries) {
+                    $icon = if ($entry.Type -eq "WARN") { ":warning:" } else { ":x:" }
+                    $escapedMsg = $entry.Message -replace '\|', '\|'
+                    $lines.Add("| $icon $($entry.Type) | ``$escapedMsg`` |")
+                  }
+                } else {
+                  $lines.Add("_No WARN/ERROR/FATAL lines found in validator output._")
+                }
+              }
+            }
+            $lines.Add("")
+          }
+          $lines | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+          if ($hasFailures) { exit 1 }

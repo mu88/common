@@ -10,13 +10,13 @@
   },
   "packageRules": [
     {
-      "description": "Unfortunately, these packages do not return a release timestamp. To prevent Renovate from skipping updates for these packages, we set the minimum release age behavior to 'timestamp-optional' so that updates will be created even without a release timestamp.",
+      "description": "Unfortunately, these packages do not return a release timestamp. In Renovate v43, 'minimumReleaseAgeBehaviour' cannot be used inside packageRules (no 'mergeable: true' in schema), so we set 'minimumReleaseAge: null' to disable the age check entirely, which also bypasses the timestamp requirement. Once upgraded to v44+, replace 'minimumReleaseAge: null' with 'minimumReleaseAgeBehaviour: \"timestamp-optional\"' in this packageRule.",
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/powershell",
         "mcr.microsoft.com/devcontainers/typescript-node",
         "mcr.microsoft.com/dotnet/sdk"
       ],
-      "minimumReleaseAgeBehaviour": "timestamp-optional"
+      "minimumReleaseAge": null
     },
     {
       "description": "Non-major updates of .NET SDK can be integrated into dev containers immediately after the release, because these dev containers won't be immediately used by downstream repositories, i.e. it's safe to already have them.",
@@ -39,8 +39,8 @@
     {
       "description": "The .NET SDK default version when building the .NET dev container in case no version is provided (e.g. not within a GitHub Action or forgotten to set the environment variable)",
       "customType": "regex",
-      "fileMatch": [
-        "\\S*\\/devcontainer\\.json"
+      "managerFilePatterns": [
+        "/\\S*\\/devcontainer\\.json/"
       ],
       "matchStrings": [
         "\\s*\"dotnet_sdk_version\":\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"", // for .devcontainer/devcontainer.json
@@ -54,14 +54,27 @@
     {
       "description": "The .NET SDK default for regular (i.e. not manually triggered) GitHub Action runs → see https://github.com/renovatebot/renovate/discussions/40905",
       "customType": "regex",
-      "fileMatch": [
-        "\\.github\\/workflows\\/_internal-build-devcontainers\\.yml"
+      "managerFilePatterns": [
+        "/\\.github\\/workflows\\/_internal-build-devcontainers\\.yml/"
       ],
       "matchStrings": [
         "\\s*DEFAULT_dotnet-sdk-version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)\\S*"
       ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
+    },
+    {
+      "description": "Track the Renovate Docker image version used in GitHub Actions workflows",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/renovate\\.yml$/",
+        "/^\\.github\\/workflows\\/validate-renovate-config\\.yml$/"
+      ],
+      "matchStrings": [
+        "RENOVATE_VERSION:\\s*\"(?<currentValue>[\\d.]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "packageNameTemplate": "ghcr.io/renovatebot/renovate"
     }
   ]
 }
