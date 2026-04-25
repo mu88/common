@@ -59,7 +59,13 @@
       "matchPackageNames": [
         "mu88.Shared"
       ],
-      "minimumReleaseAge": "0 minutes"
+      "minimumReleaseAge": "0 minutes",
+      "schedule": [
+        "at any time"
+      ],
+      "automergeSchedule": [
+        "at any time"
+      ]
     },
     {
       "description": "Immediately merge new digests from mu88/common as they don't have a timestamp",
