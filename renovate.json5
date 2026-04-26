@@ -13,6 +13,7 @@
       "description": "Unfortunately, these packages do not return a release timestamp. In Renovate v43, 'minimumReleaseAgeBehaviour' cannot be used inside packageRules (no 'mergeable: true' in schema), so we set 'minimumReleaseAge: null' to disable the age check entirely, which also bypasses the timestamp requirement. Once upgraded to v44+, replace 'minimumReleaseAge: null' with 'minimumReleaseAgeBehaviour: \"timestamp-optional\"' in this packageRule.",
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/powershell",
+        "ghcr.io/renovatebot/renovate",
         "mcr.microsoft.com/devcontainers/typescript-node",
         "mcr.microsoft.com/dotnet/sdk"
       ],
