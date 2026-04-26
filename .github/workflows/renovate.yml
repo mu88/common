@@ -6,6 +6,7 @@ on:
     - cron: "0 */6 * * 0,2-6"
   push:
     paths:
+      - ".github/workflows/renovate.yml"
       - "renovate/**"
       - "renovate.json5"
   workflow_dispatch:
@@ -28,6 +29,7 @@ jobs:
         with:
           app-id: ${{ vars.MU88_BOT_APP_ID }}
           private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: Run Renovate
         shell: pwsh

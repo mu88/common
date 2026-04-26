@@ -6,6 +6,7 @@ on:
       - "renovate/**"
   pull_request:
     paths:
+      - ".github/workflows/validate-renovate-config.yml"
       - "renovate/**"
   workflow_dispatch:
 
