@@ -103,7 +103,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -154,7 +154,7 @@ jobs:
         run: dotnet tool run dotnet-sonarscanner end /d:sonar.token=${{ env.ENV_SONAR_TOKEN }}
 
       - name: Publish test report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -179,7 +179,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -195,7 +195,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=Performance' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -220,7 +220,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -236,7 +236,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=System' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -384,7 +384,7 @@ jobs:
           global-json-file: global.json
 
       - name: Set up Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {
@@ -395,7 +395,7 @@ jobs:
             }
 
       - name: Login to Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -524,7 +524,7 @@ jobs:
 
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
