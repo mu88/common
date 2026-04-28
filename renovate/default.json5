@@ -24,11 +24,12 @@
       "newLogLevel": "info"
     }
   ],
+  "timezone": "Europe/Berlin",
   "schedule": [
-    "* 7-17 * * 1"
+    "* 7-17 * * 2"
   ],
   "automergeSchedule": [
-    "* 7-17 * * 1"
+    "* 7-17 * * 2"
   ],
   "mode": "full",
   "minimumReleaseAge": "14 days",

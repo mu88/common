@@ -31,7 +31,6 @@ jobs:
     strategy:
       matrix:
         package: [
-          dotnet,
           jekyll,
           node-devcontainer-cli
         ]
@@ -47,9 +46,8 @@ jobs:
           dotnet-sdk-version: ${{ github.event.inputs.dotnet-sdk-version || env.DEFAULT_dotnet-sdk-version }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  dotnet_playwright:
+  dotnet_and_playwright:
     runs-on: ubuntu-latest
-    needs: parallel_build_dev_containers
 
     permissions:
       contents: read
@@ -60,6 +58,13 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v6
+
+      - name: Build and release dev container 'dotnet'
+        uses: ./.github/actions/build-dev-container
+        with:
+          dev-container-name: dotnet
+          dotnet-sdk-version: ${{ github.event.inputs.dotnet-sdk-version || env.DEFAULT_dotnet-sdk-version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and release dev container 'dotnet-playwright'
         uses: ./.github/actions/build-dev-container
