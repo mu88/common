@@ -23,30 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Generate GitHub App token
-        id: token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ vars.MU88_BOT_APP_ID }}
-          private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-
       - name: Get bot user identity
+        uses: ./.github/actions/get-bot-identity
         id: bot-identity
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
-        run: |
-          bot_slug="${{ steps.token.outputs.app-slug }}"
-          bot_id=$(gh api "/users/${bot_slug}%5Bbot%5D" --jq .id)
-          bot_login=$(gh api "/users/${bot_slug}%5Bbot%5D" --jq .login)
-          echo "name=$bot_login" >> "$GITHUB_OUTPUT"
-          echo "email=${bot_id}+${bot_login}@users.noreply.github.com" >> "$GITHUB_OUTPUT"
+        with:
+          client-id: ${{ vars.MU88_BOT_APP_ID }}
+          private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
 
       - name: Run Renovate
         shell: pwsh
         run: |
           docker run --rm `
-            -e "RENOVATE_TOKEN=${{ steps.token.outputs.token }}" `
+            -e "RENOVATE_TOKEN=${{ steps.bot-identity.outputs.token }}" `
             -e "RENOVATE_GIT_AUTHOR=${{ steps.bot-identity.outputs.name }} <${{ steps.bot-identity.outputs.email }}>" `
             -e LOG_LEVEL=debug `
             -e LOG_FILE=/tmp/renovate-output.log `
