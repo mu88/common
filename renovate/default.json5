@@ -26,10 +26,10 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": [
-    "* 7-20 * * 3"
+    "* 6-18 * * 1"
   ],
   "automergeSchedule": [
-    "* 7-20 * * 3"
+    "* 6-18 * * 1"
   ],
   "mode": "full",
   "minimumReleaseAge": "14 days",
