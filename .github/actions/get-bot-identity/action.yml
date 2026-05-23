@@ -40,7 +40,7 @@ runs:
         GH_TOKEN: ${{ steps.token.outputs.token }}
       run: |
         bot_slug="${{ steps.token.outputs.app-slug }}"
-        bot_id=$(gh api "/users/${bot_slug}%5Bbot%5D" --jq .id)
-        bot_login=$(gh api "/users/${bot_slug}%5Bbot%5D" --jq .login)
+        bot_id=$(gh api "users/${bot_slug}%5Bbot%5D" --jq .id)
+        bot_login=$(gh api "users/${bot_slug}%5Bbot%5D" --jq .login)
         echo "name=$bot_login" >> "$GITHUB_OUTPUT"
         echo "email=${bot_id}+${bot_login}@users.noreply.github.com" >> "$GITHUB_OUTPUT"
