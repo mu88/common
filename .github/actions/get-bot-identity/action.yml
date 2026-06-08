@@ -28,7 +28,7 @@ runs:
   steps:
     - name: Generate GitHub App token
       id: token
-      uses: actions/create-github-app-token@v3.1.1
+      uses: actions/create-github-app-token@v3.2.0
       with:
         client-id: ${{ inputs.client-id }}
         private-key: ${{ inputs.private-key }}

@@ -2,7 +2,7 @@
   "name": "C# (.NET)",
   "image": "mcr.microsoft.com/devcontainers/base:noble", // using base image + dotnet feature to pin an exact SDK version (see https://github.com/devcontainers/templates/issues/330)
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:3": {},
     "ghcr.io/devcontainers/features/dotnet:2": {
       "version": "${localEnv:DOTNET_SDK_VERSION:10.0.300}"
     },
