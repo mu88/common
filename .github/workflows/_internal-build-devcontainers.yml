@@ -16,7 +16,7 @@ on:
       - "devcontainers/**"
 
 env:
-  DEFAULT_dotnet-sdk-version: 10.0.300
+  DEFAULT_dotnet-sdk-version: 10.0.301
 
 jobs:
   parallel_build_dev_containers:
