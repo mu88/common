@@ -56,6 +56,13 @@
   "branchConcurrentLimit": 0,
   "packageRules": [
     {
+      "description": "Bump bare NuGet versions to the latest release (see https://docs.renovatebot.com/modules/manager/nuget/#getting-updates-for-non-pinned-bare-versions)",
+      "matchManagers": [
+        "nuget"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
       "description": "Immediately merge updates of my own NuGet package as I'm in charge of those.",
       "matchPackageNames": [
         "mu88.Shared"
