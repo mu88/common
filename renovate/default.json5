@@ -100,10 +100,47 @@
         "mcr.microsoft.com/dotnet/runtime",
         "mcr.microsoft.com/dotnet/runtime-deps"
       ],
+      "groupName": "all .NET",
+      "groupSlug": "all-dotnet",
       "minimumReleaseAge": "21 days"
     },
     {
-      "description": "Major updates of .NET SDK and runtime will be done manually",
+      "description": "Group .NET-cadence framework NuGet packages together with the .NET SDK and runtime updates so that they are shipped together",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "matchDatasources": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "Microsoft.AspNetCore*",
+        "Microsoft.EntityFrameworkCore*",
+        "Microsoft.Extensions.*",
+        "System.Text.Json"
+      ],
+      "groupName": "all .NET",
+      "groupSlug": "all-dotnet",
+      "minimumReleaseAge": "21 days"
+    },
+    {
+      "description": "Group .NET SDK and runtime updates together with the dotnet-tools.json updates so that they are shipped together",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "separateMajorMinor": false,
+      "matchFileNames": [
+        ".config/dotnet-tools.json"
+      ],
+      "groupName": "all .NET",
+      "groupSlug": "all-dotnet",
+      "minimumReleaseAge": "21 days"
+    },
+    {
+      "description": "Major updates of .NET-cadence SDK/runtime and framework package families will be done manually",
       "matchUpdateTypes": [
         "major"
       ],
@@ -115,7 +152,6 @@
         "mcr.microsoft.com/dotnet/runtime",
         "mcr.microsoft.com/dotnet/runtime-deps",
         "Microsoft.AspNetCore*",
-        "Microsoft.Bcl*",
         "Microsoft.EntityFrameworkCore*",
         "Microsoft.Extensions.*",
         "System.Text.Json"
