@@ -1,0 +1,32 @@
+name: check-temporary-package-pins
+description: Check whether temporary NuGet package pins can be removed
+
+inputs:
+  solution-path:
+    description: Path to the solution or project file to restore and scan
+    required: true
+  package-file:
+    description: Path to the package version file
+    required: false
+    default: Directory.Packages.props
+  pin-marker:
+    description: Comment marker that identifies temporary pins
+    required: false
+    default: 'TEMP-PIN:'
+
+runs:
+  using: composite
+  steps:
+    - name: Check temporary package pins
+      shell: pwsh
+      env:
+        SOLUTION_PATH: ${{ inputs.solution-path }}
+        PACKAGE_FILE: ${{ inputs.package-file }}
+        PIN_MARKER: ${{ inputs.pin-marker }}
+      run: |
+        $scriptPath = Join-Path $env:GITHUB_ACTION_PATH 'Check-TemporaryPackagePins.ps1'
+        & $scriptPath `
+          -WorkspaceRoot $env:GITHUB_WORKSPACE `
+          -SolutionPath $env:SOLUTION_PATH `
+          -PackageFile $env:PACKAGE_FILE `
+          -PinMarker $env:PIN_MARKER
