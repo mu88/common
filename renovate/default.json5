@@ -32,7 +32,6 @@
     "* 6-18 * * 1"
   ],
   "mode": "full",
-  "minimumReleaseAge": "14 days",
   "automerge": true,
   "automergeType": "branch",
   "osvVulnerabilityAlerts": true,
@@ -55,6 +54,17 @@
   "prConcurrentLimit": 0,
   "branchConcurrentLimit": 0,
   "packageRules": [
+    {
+      // Catch-all matching every package via wildcard (Renovate requires at least one match*/exclude* selector).
+      // Placed first in user rules so it wins over any inherited preset packageRules
+      // (e.g. security:minimumReleaseAgeNpm sets 3 days for npm).
+      // More-specific rules below still take precedence because they appear later (last-match wins).
+      "description": "Base minimumReleaseAge – guard against inherited-preset packageRule overrides",
+      "matchPackageNames": [
+        "*"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
     {
       "description": "Bump bare NuGet versions to the latest release (see https://docs.renovatebot.com/modules/manager/nuget/#getting-updates-for-non-pinned-bare-versions)",
       "matchManagers": [
