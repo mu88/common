@@ -86,10 +86,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -116,7 +116,7 @@ jobs:
         run: dotnet restore
 
       - name: Restore SonarQube packages from cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           key: sonar-${{ runner.os }}
           path: ~/.sonar/cache
@@ -168,10 +168,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -209,10 +209,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -257,12 +257,12 @@ jobs:
     
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # otherwise Versionize cannot read the Git history and the pre-release version cannot be bumped
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -376,10 +376,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'

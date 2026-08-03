@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENOVATE_VERSION: "43.247.1"
+  RENOVATE_VERSION: "44.8.0"
 
 jobs:
   renovate:
@@ -21,7 +21,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Get bot user identity
         uses: ./.github/actions/get-bot-identity
