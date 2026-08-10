@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENOVATE_VERSION: "44.18.0"
+  RENOVATE_VERSION: "44.20.1"
 
 jobs:
   validate:
