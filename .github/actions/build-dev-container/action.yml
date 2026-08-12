@@ -8,9 +8,6 @@ inputs:
   dotnet-sdk-version:
     description: '.NET SDK version'
     required: true
-  github-token:
-    description: 'GitHub token for authentication'
-    required: true
 
 runs:
   using: "composite"
@@ -18,13 +15,6 @@ runs:
   steps:
     - name: Check out code
       uses: actions/checkout@v7
-
-    - name: Login to Container registry
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ inputs.github-token }}
 
     - name: Create helper variable with .NET SDK version for Docker image tagging
       shell: bash

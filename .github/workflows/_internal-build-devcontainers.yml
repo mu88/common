@@ -39,14 +39,20 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
 
+      - name: Login to Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and release dev container '${{ matrix.package }}'
         uses: ./.github/actions/build-dev-container
         with:
           dev-container-name: ${{ matrix.package }}
           dotnet-sdk-version: ${{ github.event.inputs.dotnet-sdk-version || env.DEFAULT_dotnet-sdk-version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  dotnet_and_playwright:
+  build_dotnet_and_playwright:
     runs-on: ubuntu-latest
 
     permissions:
@@ -59,16 +65,25 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
 
+      - name: Login to Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # dotnet-playwright's Dockerfile builds FROM the dotnet image. Building both in the same
+      # job/runner means the just-built dotnet image is already in the local Docker daemon, so
+      # the playwright build resolves it locally instead of pulling from GHCR right after pushing
+      # (which is prone to registry propagation delays).
       - name: Build and release dev container 'dotnet'
         uses: ./.github/actions/build-dev-container
         with:
           dev-container-name: dotnet
           dotnet-sdk-version: ${{ github.event.inputs.dotnet-sdk-version || env.DEFAULT_dotnet-sdk-version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and release dev container 'dotnet-playwright'
         uses: ./.github/actions/build-dev-container
         with:
           dev-container-name: dotnet-playwright
           dotnet-sdk-version: ${{ github.event.inputs.dotnet-sdk-version || env.DEFAULT_dotnet-sdk-version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
