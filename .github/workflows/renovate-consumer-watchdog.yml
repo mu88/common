@@ -1,0 +1,55 @@
+name: Renovate Consumer Watchdog
+
+on:
+  schedule:
+    - cron: "0 5,17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renovate-consumer-watchdog
+  cancel-in-progress: false
+
+jobs:
+  check-consumer-ci-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Get bot user identity
+        uses: ./.github/actions/get-bot-identity
+        id: bot-identity
+        with:
+          client-id: ${{ vars.MU88_BOT_APP_ID }}
+          private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
+
+      # Cache keys are immutable, so state is persisted as a "sliding" cache: every run
+      # saves under a unique key, and restores by falling back to the most recent key
+      # matching the shared prefix. Stale entries simply age out (7-day inactivity
+      # eviction), no cleanup step or git commit required.
+      - name: Restore watchdog state
+        uses: actions/cache/restore@v4
+        with:
+          path: renovate-watchdog-state.json
+          key: renovate-watchdog-state-${{ github.run_id }}
+          restore-keys: |
+            renovate-watchdog-state-
+
+      - name: Check Renovate branches for CI failures
+        shell: pwsh
+        env:
+          BOT_TOKEN: ${{ steps.bot-identity.outputs.token }}
+        run: |
+          .github/scripts/Get-RenovateConsumerFailures.ps1 `
+            -Token $env:BOT_TOKEN `
+            -StateFilePath renovate-watchdog-state.json
+
+      - name: Save watchdog state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: renovate-watchdog-state.json
+          key: renovate-watchdog-state-${{ github.run_id }}
