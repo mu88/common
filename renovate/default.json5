@@ -185,8 +185,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\S*\\.csproj$"
+      "managerFilePatterns": [
+        "/^\\S*\\.csproj$/"
       ],
       "matchStrings": [
         "<ContainerBaseImage>(?<packageName>\\S+):(?<currentValue>\\S+)<\/ContainerBaseImage>"
@@ -195,8 +195,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\S*\\.csproj$"
+      "managerFilePatterns": [
+        "/^\\S*\\.csproj$/"
       ],
       "matchStrings": [
         "<CustomContainerBaseImageVersion>(?<currentValue>\\S+)<\/CustomContainerBaseImageVersion>"
@@ -206,8 +206,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\S*\\.devcontainer\\/devcontainer\\.json$"
+      "managerFilePatterns": [
+        "/^\\S*\\.devcontainer\\/devcontainer\\.json$/"
       ],
       "matchStrings": [
         "\"image\":\\s*\"\\S*mu88\\/devcontainers-dotnet\\S*:sdk-(?<currentValue>\\d+\\.\\d+\\.\\d+)\\S*"
@@ -217,10 +217,10 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$",
-        "(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$",
-        "(^|/)(?:docker-)?compose[^/]*\\.ya?ml$"
+      "managerFilePatterns": [
+        "/(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$/",
+        "/(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$/",
+        "/(^|/)(?:docker-)?compose[^/]*\\.ya?ml$/"
       ],
       "matchStrings": [
         "\\S*mcr\\.microsoft\\.com\\/dotnet\\/aspnet:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*",
@@ -232,10 +232,10 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$",
-        "(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$",
-        "(^|/)(?:docker-)?compose[^/]*\\.ya?ml$"
+      "managerFilePatterns": [
+        "/(^|/|\\.)([Dd]ocker|[Cc]ontainer)file$/",
+        "/(^|/)([Dd]ocker|[Cc]ontainer)file[^/]*$/",
+        "/(^|/)(?:docker-)?compose[^/]*\\.ya?ml$/"
       ],
       "matchStrings": [
         "\\S*mcr\\.microsoft\\.com\\/dotnet\\/sdk:(?<currentValue>\\d+(\\.\\d+)?(\\.\\d+)?).*"
