@@ -29,9 +29,9 @@ runs:
       shell: bash
       run: |
         if [ -n "${{ env.ADDITIONAL_TAG }}" ]; then
-          echo "IMAGE_TAG=v${{ github.run_number }}, latest, ${{ env.ADDITIONAL_TAG }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=v${{ github.run_id }}, latest, ${{ env.ADDITIONAL_TAG }}" >> $GITHUB_ENV
         else
-          echo "IMAGE_TAG=v${{ github.run_number }}, latest" >> $GITHUB_ENV
+          echo "IMAGE_TAG=v${{ github.run_id }}, latest" >> $GITHUB_ENV
         fi
 
     - name: Log certain derived environment variables
