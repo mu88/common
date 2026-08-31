@@ -66,6 +66,14 @@
       "minimumReleaseAge": "14 days"
     },
     {
+      // Source: https://docs.renovatebot.com/configuration-options/#pindigests
+      "description": "Pin GitHub Actions to immutable commit SHAs",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "pinDigests": true
+    },
+    {
       "description": "Bump bare NuGet versions to the latest release (see https://docs.renovatebot.com/modules/manager/nuget/#getting-updates-for-non-pinned-bare-versions)",
       "matchManagers": [
         "nuget"
