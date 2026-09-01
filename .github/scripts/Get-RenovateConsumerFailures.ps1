@@ -39,6 +39,49 @@ function Invoke-GhApi([string[]] $Arguments) {
     $output
 }
 
+function Get-GitHubRequestId([string[]] $Lines) {
+    $requestId = $null
+    foreach ($line in $Lines) {
+        if ($line -match '^x-github-request-id:\s*(.+)$') {
+            $requestId = $matches[1].Trim()
+        }
+    }
+    $requestId
+}
+
+function Get-ResponseBodyStartIndex([string[]] $Lines) {
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ([string]::IsNullOrWhiteSpace($Lines[$index])) {
+            $bodyStartIndex = $index + 1
+            if ($bodyStartIndex -lt $Lines.Count) { return $bodyStartIndex }
+        }
+    }
+
+    for ($index = 0; $index -lt $Lines.Count; $index++) {
+        if ($Lines[$index] -match '^\s*\[') { return $index }
+    }
+
+    -1
+}
+
+function Invoke-GhApiWithResponseMetadata([string[]] $Arguments) {
+    $output = & gh @Arguments '--include' 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "gh $($Arguments -join ' ') failed with exit code ${LASTEXITCODE}."
+    }
+
+    $lines = @($output | ForEach-Object { [string]$_ })
+    $bodyStartIndex = Get-ResponseBodyStartIndex $lines
+    if ($bodyStartIndex -lt 0) {
+        throw 'gh API response did not contain a JSON body.'
+    }
+
+    [PSCustomObject]@{
+        Body      = ($lines[$bodyStartIndex..($lines.Count - 1)] -join [Environment]::NewLine)
+        RequestId = Get-GitHubRequestId $lines
+    }
+}
+
 function Get-PreviousState([string] $Path) {
     $state = @{}
     if (Test-Path $Path) {
@@ -55,30 +98,127 @@ function Get-InstalledRepositories {
 }
 
 function Get-RenovateBranches([string] $Repo) {
-    Invoke-GhApi @('api', "repos/$Repo/branches", '--paginate', '--jq', '.[].name') |
-        Where-Object { $_ -like 'renovate/*' }
+    $json = Invoke-GhApi @(
+        'api', "repos/$Repo/branches", '--paginate',
+        '--jq', '[.[] | select(.name | startswith("renovate/")) | { name, sha: .commit.sha }]'
+    )
+    $json | ConvertFrom-Json
 }
 
-function Get-LatestFailingRun([string] $Repo, [string] $Branch) {
+function Get-LatestRunsPerWorkflow([object[]] $Runs) {
+    $Runs |
+        Sort-Object -Property created_at -Descending |
+        Group-Object -Property workflow_id |
+        ForEach-Object { $_.Group[0] }
+}
+
+function Get-RenovateRunAnalysis([string] $Repo, [PSCustomObject] $Branch) {
     # Look at more than the single latest run: a branch can trigger several
     # workflows (e.g. CI + a linter) on the same push, and only checking the
     # most recently created run could miss a failure in a sibling workflow.
     # No `event=` filter, so this also covers repos whose CI only triggers on
     # `pull_request` once Renovate opens a PR for the branch.
-    $encodedBranch = [System.Uri]::EscapeDataString($Branch)
-    $json = Invoke-GhApi @(
-        'api', "repos/$Repo/actions/runs?branch=$encodedBranch&status=completed&per_page=20",
+    $encodedBranch = [System.Uri]::EscapeDataString($Branch.name)
+    $endpoint = "repos/$Repo/actions/runs?branch=$encodedBranch&status=completed&per_page=20"
+    $response = Invoke-GhApiWithResponseMetadata @(
+        'api', $endpoint,
         '--jq', '.workflow_runs'
     )
-    $runs = $json | ConvertFrom-Json
-    if (-not $runs -or $runs.Count -eq 0) { return $null }
+    $runs = @($response.Body | ConvertFrom-Json)
 
-    $latestPerWorkflow = $runs |
-        Sort-Object -Property created_at -Descending |
-        Group-Object -Property workflow_id |
-        ForEach-Object { $_.Group[0] }
+    $latestPerWorkflow = @(Get-LatestRunsPerWorkflow $runs)
 
-    $latestPerWorkflow | Where-Object { $_.conclusion -eq 'failure' } | Select-Object -First 1
+    [PSCustomObject]@{
+        Endpoint          = $endpoint
+        EncodedBranch     = $encodedBranch
+        RequestId         = $response.RequestId
+        Runs              = $runs
+        LatestPerWorkflow = @($latestPerWorkflow)
+        FailingRun        = $latestPerWorkflow | Where-Object { $_.conclusion -eq 'failure' } | Select-Object -First 1
+        Repo              = $Repo
+        BranchName        = $Branch.name
+        BranchHeadSha     = $Branch.sha
+    }
+}
+
+function ConvertTo-RunDiagnosticRows([object[]] $Runs) {
+    foreach ($run in $Runs) {
+        [PSCustomObject]@{
+            WorkflowId = $run.workflow_id
+            Workflow   = $run.name
+            RunId      = $run.id
+            HeadBranch = $run.head_branch
+            HeadSha    = $run.head_sha
+            CreatedAt  = $run.created_at
+            Event      = $run.event
+            Conclusion = $run.conclusion
+        }
+    }
+}
+
+function ConvertTo-MarkdownCell([object] $Value) {
+    ([string]$Value -replace '\|', '\|') -replace "`r?`n", ' '
+}
+
+function Write-DiagnosticMarkdownRows([object[]] $Rows, [string] $SummaryFile) {
+    '| Workflow ID | Workflow | Run ID | Head branch | Head SHA | Created | Event | Conclusion |' |
+        Out-File -Append $SummaryFile
+    '| --- | --- | --- | --- | --- | --- | --- | --- |' | Out-File -Append $SummaryFile
+    foreach ($row in $Rows) {
+        "| $(ConvertTo-MarkdownCell $row.WorkflowId) | $(ConvertTo-MarkdownCell $row.Workflow) | $(ConvertTo-MarkdownCell $row.RunId) | $(ConvertTo-MarkdownCell $row.HeadBranch) | $(ConvertTo-MarkdownCell $row.HeadSha) | $(ConvertTo-MarkdownCell $row.CreatedAt) | $(ConvertTo-MarkdownCell $row.Event) | $(ConvertTo-MarkdownCell $row.Conclusion) |" |
+            Out-File -Append $SummaryFile
+    }
+    '' | Out-File -Append $SummaryFile
+}
+
+function Write-DiagnosticTable([string] $Title, [object[]] $Rows, [string] $SummaryFile) {
+    if ($Rows.Count -eq 0) {
+        "${Title}: no runs returned." | Out-File -Append $SummaryFile
+        return
+    }
+
+    Write-Host $Title
+    Write-Host ($Rows | Format-Table -AutoSize | Out-String -Width 500)
+    $Title | Out-File -Append $SummaryFile
+    Write-DiagnosticMarkdownRows $Rows $SummaryFile
+}
+
+function Write-DiagnosticMetadata([string[]] $Metadata, [string] $SummaryFile) {
+    $codeSpan = '`'
+    Write-Host 'Watchdog diagnostics:'
+    $Metadata | ForEach-Object { Write-Host $_ }
+    '## Watchdog diagnostics' | Out-File -Append $SummaryFile
+    '| Field | Value |' | Out-File -Append $SummaryFile
+    '| --- | --- |' | Out-File -Append $SummaryFile
+    foreach ($entry in $Metadata) {
+        $name, $value = $entry -split ': ', 2
+        "| $name | $codeSpan$value$codeSpan |" | Out-File -Append $SummaryFile
+    }
+    '' | Out-File -Append $SummaryFile
+}
+
+function Write-WatchdogDiagnostics(
+    [PSCustomObject] $Analysis,
+    [string] $StateKey,
+    [string] $PreviousStateValue,
+    [string] $NewStateValue,
+    [string] $SummaryFile
+) {
+    $metadata = @(
+        "Repository: $($Analysis.Repo)"
+        "Branch: $($Analysis.BranchName)"
+        "Branch head SHA: $($Analysis.BranchHeadSha)"
+        "Encoded branch parameter: $($Analysis.EncodedBranch)"
+        "Endpoint: $($Analysis.Endpoint)"
+        "GitHub request ID: $($Analysis.RequestId)"
+        "Returned runs: $($Analysis.Runs.Count)"
+        "State ($StateKey): $PreviousStateValue -> $NewStateValue"
+        "Failure candidate: $($Analysis.FailingRun.id)"
+    )
+
+    Write-DiagnosticMetadata $metadata $SummaryFile
+    Write-DiagnosticTable -Title 'Queried completed runs' -Rows @(ConvertTo-RunDiagnosticRows $Analysis.Runs) -SummaryFile $SummaryFile
+    Write-DiagnosticTable -Title 'Latest run per workflow' -Rows @(ConvertTo-RunDiagnosticRows $Analysis.LatestPerWorkflow) -SummaryFile $SummaryFile
 }
 
 # --- Main ---
@@ -101,29 +241,32 @@ foreach ($repo in $repos) {
     }
 
     if ($branches.Count -gt 0) {
-        Write-Host "${repo}: found renovate branch(es) $($branches -join ', ')"
+        Write-Host "${repo}: found renovate branch(es) $($branches.name -join ', ')"
     }
 
     foreach ($branch in $branches) {
-        $key = "$repo#$branch"
+        $branchName = $branch.name
+        $key = "$repo#$branchName"
         try {
-            $failingRun = Get-LatestFailingRun $repo $branch
+            $analysis = Get-RenovateRunAnalysis $repo $branch
+            $failingRun = $analysis.FailingRun
         } catch {
-            $message = "Failed to check runs for ${repo}:${branch}: $_"
+            $message = "Failed to check runs for ${repo}:${branchName}: $_"
             Write-Host "::error::$message"
             $checkErrors.Add($message)
             continue
         }
 
         if (-not $failingRun) {
-            Write-Host "${repo}:${branch}: no failing run found"
+            Write-Host "${repo}:${branchName}: no failing run found"
             continue
         }
 
-        Write-Host "${repo}:${branch}: latest failing run is $($failingRun.id) ($($failingRun.html_url))"
+        Write-Host "${repo}:${branchName}: latest failing run is $($failingRun.id) ($($failingRun.html_url))"
         $newState[$key] = [string]$failingRun.id
+        Write-WatchdogDiagnostics $analysis $key $previousState[$key] $newState[$key] $SummaryFile
         if ($previousState[$key] -ne [string]$failingRun.id) {
-            $newFailures.Add([PSCustomObject]@{ Repo = $repo; Branch = $branch; Url = $failingRun.html_url })
+            $newFailures.Add([PSCustomObject]@{ Repo = $repo; Branch = $branchName; Url = $failingRun.html_url })
         }
     }
 }
