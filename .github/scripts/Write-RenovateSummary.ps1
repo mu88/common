@@ -1,6 +1,11 @@
 param(
     [Parameter(Mandatory)] [string] $LogFile,
-    [string] $SummaryFile = $env:GITHUB_STEP_SUMMARY
+    [string] $SummaryFile = $env:GITHUB_STEP_SUMMARY,
+    # Optional: if set, writes a machine-readable JSON export of the branches Renovate
+    # currently actively tracks per repository, for consumption by other workflows
+    # (e.g. the Renovate Consumer Watchdog, which needs to distinguish actively-tracked
+    # `renovate/*` branches from stale/orphaned ones).
+    [string] $ActiveBranchesFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +20,57 @@ function Read-RenovateLog([string] $Path) {
 function Format-RepoLink([string] $Name) {
     if ($Name -eq '(global)') { return '(global)' }
     "[``$Name``](https://github.com/$Name)"
+}
+
+function Get-ProcessingBranchNames([string] $Msg) {
+    # Renovate logs exactly one such line per repository, e.g.:
+    #   "Processing 0 branches: "
+    #   "Processing 1 branch: renovate/all"
+    #   "Processing 2 branches: renovate/all, renovate/all-dotnet"
+    # This is Renovate's own authoritative list of branches it currently considers
+    # relevant for that repo, independent of whether anything happened to them.
+    if ($Msg -notmatch '^Processing \d+ branche?s?: ?(.*)$') { return $null }
+    $namesPart = $matches[1].Trim()
+    # The leading comma must sit directly on the array literal being returned: an
+    # intermediate `$var = @(...)` assignment already unrolls a 0-element array to
+    # $null and a 1-element array to a bare scalar, before any later comma could help.
+    if ([string]::IsNullOrWhiteSpace($namesPart)) { return ,@() }
+    return ,@($namesPart -split ',\s*')
+}
+
+function Get-RepoBranchMap([object[]] $Entries) {
+    # Only trust a repo's branch list once it has fully finished processing
+    # (result=done). A repo that errored out or never finished could have an
+    # incomplete/partial "Processing N branches" snapshot, and treating that as
+    # ground truth risks suppressing real watchdog alerts for branches Renovate
+    # still cares about. This is intentionally stricter than Get-OverviewSection's
+    # branch column above, which is purely informational for humans.
+    $finishedRepos = $Entries |
+        Where-Object { $_.msg -eq 'Repository finished' -and $_.result -eq 'done' -and $_.repository } |
+        Select-Object -ExpandProperty repository -Unique
+
+    $map = [ordered]@{}
+    foreach ($repo in $finishedRepos) {
+        $processingEntry = $Entries |
+            Where-Object { $_.repository -eq $repo } |
+            ForEach-Object { [PSCustomObject]@{ Branches = Get-ProcessingBranchNames $_.msg } } |
+            Where-Object { $null -ne $_.Branches } |
+            Select-Object -Last 1
+
+        if ($null -eq $processingEntry) { continue } # no "Processing" line found - can't trust, omit repo
+        $map[$repo] = $processingEntry.Branches
+    }
+    $map
+}
+
+function Export-ActiveBranches([System.Collections.Specialized.OrderedDictionary] $Map, [string] $Path) {
+    $payload = [ordered]@{
+        schemaVersion  = 1
+        generatedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+        runId          = $env:GITHUB_RUN_ID
+        repositories   = $Map
+    }
+    $payload | ConvertTo-Json -Depth 5 | Out-File $Path -Encoding utf8
 }
 
 function Get-OverviewSection([object[]] $Entries) {
@@ -175,6 +231,13 @@ if (-not (Test-Path $LogFile)) {
 }
 
 $entries = Read-RenovateLog $LogFile
+
+# Written before the HasErrors-driven exit below, so the export exists on disk
+# regardless of whether this run is ultimately marked failed for unrelated reasons.
+if ($ActiveBranchesFile) {
+    Export-ActiveBranches (Get-RepoBranchMap $entries) $ActiveBranchesFile
+}
+
 $issues  = Get-IssuesSection $entries
 
 @(

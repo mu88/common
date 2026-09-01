@@ -16,6 +16,17 @@
     until either the branch is fixed/removed or a new failing run appears. State entries
     for branches that no longer exist are pruned on every run.
 
+    Before checking branches, the script tries to download the "renovate-active-branches"
+    artifact from the most recent completed run of mu88/common's own `renovate.yml`
+    workflow (using the job's own GITHUB_TOKEN, not the cross-repo App token below). That
+    artifact lists, per repository, the `renovate/*` branches Renovate currently actively
+    tracks - which is used to skip branches that still exist on GitHub but are no longer
+    tracked by Renovate (e.g. leftovers from a config change), without flagging them as CI
+    failures. If the artifact is unavailable, stale (older than a generous freshness
+    window), or fails to parse, this filtering is skipped entirely and every existing
+    `renovate/*` branch is checked as before (fail-open: a missed alert is worse than an
+    unnecessary check).
+
     Any error while querying a repository (e.g. missing permissions) is surfaced and fails
     the job, rather than being silently swallowed and reported as "no failures".
 #>
@@ -37,6 +48,20 @@ function Invoke-GhApi([string[]] $Arguments) {
         throw "gh $($Arguments -join ' ') failed with exit code ${LASTEXITCODE}: $output"
     }
     $output
+}
+
+function Invoke-GhAsRepoToken([string[]] $Arguments) {
+    # mu88/common's own Actions API/artifacts must be read with the workflow job's own
+    # GITHUB_TOKEN, not the cross-repo App token ($env:GH_TOKEN is set to the App token
+    # for the whole script's lifetime further down) - the App may not have access, and
+    # this repo doesn't need it since the watchdog already runs inside mu88/common.
+    $previousToken = $env:GH_TOKEN
+    try {
+        $env:GH_TOKEN = $env:GITHUB_TOKEN
+        Invoke-GhApi $Arguments
+    } finally {
+        $env:GH_TOKEN = $previousToken
+    }
 }
 
 function Get-GitHubRequestId([string[]] $Lines) {
@@ -103,6 +128,82 @@ function Get-RenovateBranches([string] $Repo) {
         '--jq', '[.[] | select(.name | startswith("renovate/")) | { name, sha: .commit.sha }]'
     )
     $json | ConvertFrom-Json
+}
+
+function Get-RenovateActiveBranchMap {
+    # renovate.yml runs at least every 6h (worst case: non-Monday schedule), and this
+    # watchdog runs twice a day - a 12h freshness window comfortably covers normal
+    # scheduling gaps while still detecting a genuinely broken/disabled Renovate run.
+    $freshnessLimit = (Get-Date).ToUniversalTime().AddHours(-12)
+
+    try {
+        $runsJson = Invoke-GhAsRepoToken @(
+            'api', 'repos/mu88/common/actions/workflows/renovate.yml/runs?status=completed&per_page=5',
+            '--jq', '[.workflow_runs[] | {id, run_started_at}] | sort_by(.run_started_at) | reverse'
+        )
+        $candidateRuns = @($runsJson | ConvertFrom-Json)
+    } catch {
+        return [PSCustomObject]@{ Available = $false; Reason = "Failed to list renovate.yml runs: $_" }
+    }
+
+    if ($candidateRuns.Count -eq 0) {
+        return [PSCustomObject]@{ Available = $false; Reason = 'No completed renovate.yml run found.' }
+    }
+
+    foreach ($candidate in $candidateRuns) {
+        $runStarted = [DateTime]::Parse($candidate.run_started_at, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+        if ($runStarted -lt $freshnessLimit) {
+            # Candidates are sorted newest-first, so every remaining one is even older.
+            return [PSCustomObject]@{
+                Available = $false
+                Reason    = "Newest remaining renovate.yml run ($($candidate.id)) is older than the 12h freshness window (started $($candidate.run_started_at))."
+            }
+        }
+
+        $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "renovate-active-branches-$($candidate.id)"
+        try {
+            try {
+                Invoke-GhAsRepoToken @(
+                    'run', 'download', $candidate.id,
+                    '--repo', 'mu88/common',
+                    '--name', 'renovate-active-branches',
+                    '--dir', $tempDir
+                ) | Out-Null
+            } catch {
+                Write-Host "renovate.yml run $($candidate.id) has no usable active-branch artifact, trying older run. ($_)"
+                continue
+            }
+
+            $artifactPath = Join-Path $tempDir 'renovate-active-branches.json'
+            if (-not (Test-Path $artifactPath)) {
+                Write-Host "renovate.yml run $($candidate.id) artifact did not contain the expected file, trying older run."
+                continue
+            }
+
+            $parsed = Get-Content $artifactPath -Raw | ConvertFrom-Json
+            if ($parsed.schemaVersion -ne 1) {
+                Write-Host "renovate.yml run $($candidate.id) artifact has unexpected schema version '$($parsed.schemaVersion)', trying older run."
+                continue
+            }
+
+            $map = @{}
+            $parsed.repositories.PSObject.Properties | ForEach-Object { $map[$_.Name] = @($_.Value) }
+
+            return [PSCustomObject]@{
+                Available    = $true
+                Repositories = $map
+                RunId        = $candidate.id
+                GeneratedAt  = $parsed.generatedAtUtc
+            }
+        } catch {
+            Write-Host "Failed to use active-branch artifact from renovate.yml run $($candidate.id), trying older run. ($_)"
+            continue
+        } finally {
+            Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    [PSCustomObject]@{ Available = $false; Reason = 'No completed renovate.yml run within the freshness window produced a usable active-branch artifact.' }
 }
 
 function Get-LatestRunsPerWorkflow([object[]] $Runs) {
@@ -226,6 +327,18 @@ $previousState = Get-PreviousState $StateFilePath
 $newState = @{}
 $newFailures = [System.Collections.Generic.List[object]]::new()
 $checkErrors = [System.Collections.Generic.List[string]]::new()
+$excludedBranches = [System.Collections.Generic.List[object]]::new()
+
+$activeBranchMap = Get-RenovateActiveBranchMap
+if ($activeBranchMap.Available) {
+    Write-Host "Loaded active-branch export from renovate.yml run $($activeBranchMap.RunId) (generated $($activeBranchMap.GeneratedAt))."
+    "## ℹ️ Active-branch filtering: using renovate.yml run [$($activeBranchMap.RunId)](https://github.com/mu88/common/actions/runs/$($activeBranchMap.RunId)) (generated $($activeBranchMap.GeneratedAt))" |
+        Out-File -Append $SummaryFile
+} else {
+    Write-Host "::warning::Active-branch export unavailable, checking all renovate/* branches for every repo. Reason: $($activeBranchMap.Reason)"
+    "## ⚠️ Active-branch filtering unavailable: $($activeBranchMap.Reason)" | Out-File -Append $SummaryFile
+}
+'' | Out-File -Append $SummaryFile
 
 $repos = @(Get-InstalledRepositories)
 Write-Host "Discovered $($repos.Count) installed repositories."
@@ -247,6 +360,17 @@ foreach ($repo in $repos) {
     foreach ($branch in $branches) {
         $branchName = $branch.name
         $key = "$repo#$branchName"
+
+        if ($activeBranchMap.Available -and $activeBranchMap.Repositories.ContainsKey($repo) -and
+            $branchName -notin $activeBranchMap.Repositories[$repo]) {
+            Write-Host "${repo}:${branchName}: skipping - not in Renovate's active-branch export (run $($activeBranchMap.RunId)), likely stale/orphaned"
+            $excludedBranches.Add([PSCustomObject]@{ Repo = $repo; Branch = $branchName })
+            # Preserve any previously-recorded failure state for this still-existing branch
+            # so it isn't misreported as "new" once it becomes actively tracked again.
+            if ($previousState.ContainsKey($key)) { $newState[$key] = $previousState[$key] }
+            continue
+        }
+
         try {
             $analysis = Get-RenovateRunAnalysis $repo $branch
             $failingRun = $analysis.FailingRun
@@ -271,14 +395,27 @@ foreach ($repo in $repos) {
     }
 }
 
-# $newState only contains keys for branches observed in this run, so entries
-# for deleted/merged Renovate branches are pruned automatically.
+# $newState contains keys for branches observed this run plus carried-forward state for
+# branches excluded via the active-branch filter above; entries for branches that are
+# genuinely gone (deleted/merged, no longer in the live branches listing at all) are
+# pruned automatically since neither path ever adds a key for them.
 $newState | ConvertTo-Json | Out-File $StateFilePath -Encoding utf8
 
 if ($checkErrors.Count -gt 0) {
     '## ⚠️ Errors while checking repositories' | Out-File -Append $SummaryFile
     '' | Out-File -Append $SummaryFile
     foreach ($checkError in $checkErrors) { "- $checkError" | Out-File -Append $SummaryFile }
+    '' | Out-File -Append $SummaryFile
+}
+
+if ($excludedBranches.Count -gt 0) {
+    '## ℹ️ Branches excluded from checking (not in Renovate active-branch export)' | Out-File -Append $SummaryFile
+    '' | Out-File -Append $SummaryFile
+    '| Repo | Branch |' | Out-File -Append $SummaryFile
+    '| --- | --- |' | Out-File -Append $SummaryFile
+    foreach ($excluded in $excludedBranches) {
+        "| [``$($excluded.Repo)``](https://github.com/$($excluded.Repo)) | ``$($excluded.Branch)`` |" | Out-File -Append $SummaryFile
+    }
     '' | Out-File -Append $SummaryFile
 }
 

@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: renovate-consumer-watchdog
@@ -42,6 +43,7 @@ jobs:
         shell: pwsh
         env:
           BOT_TOKEN: ${{ steps.bot-identity.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           .github/scripts/Get-RenovateConsumerFailures.ps1 `
             -Token $env:BOT_TOKEN `

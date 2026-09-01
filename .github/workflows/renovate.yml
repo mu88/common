@@ -48,4 +48,13 @@ jobs:
       - name: Job Summary
         if: always()
         shell: pwsh
-        run: .github/scripts/Write-RenovateSummary.ps1 -LogFile /tmp/renovate-output.log
+        run: .github/scripts/Write-RenovateSummary.ps1 -LogFile /tmp/renovate-output.log -ActiveBranchesFile /tmp/renovate-active-branches.json
+
+      - name: Upload active-branch export
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renovate-active-branches
+          path: /tmp/renovate-active-branches.json
+          retention-days: 2
+          if-no-files-found: warn
