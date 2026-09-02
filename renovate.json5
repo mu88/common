@@ -10,7 +10,7 @@
   },
   "packageRules": [
     {
-      "description": "Unfortunately, these packages do not return a release timestamp. In Renovate v43, 'minimumReleaseAgeBehaviour' cannot be used inside packageRules (no 'mergeable: true' in schema), so we set 'minimumReleaseAge: null' to disable the age check entirely, which also bypasses the timestamp requirement. Once upgraded to v44+, replace 'minimumReleaseAge: null' with 'minimumReleaseAgeBehaviour: \"timestamp-optional\"' in this packageRule.",
+      "description": "Unfortunately, these packages do not return a release timestamp. 'minimumReleaseAgeBehaviour: \"timestamp-optional\"' disables the timestamp requirement for them while still honoring minimumReleaseAge for updates that do report a timestamp.",
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/docker-in-docker",
         "ghcr.io/devcontainers/features/powershell",
@@ -18,7 +18,7 @@
         "mcr.microsoft.com/devcontainers/typescript-node",
         "mcr.microsoft.com/dotnet/sdk"
       ],
-      "minimumReleaseAge": null
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
     },
     {
       "description": "Non-major updates of .NET SDK can be integrated into dev containers and their build workflow immediately after the release, because these dev containers won't be immediately used by downstream repositories, i.e. it's safe to already have them.",
