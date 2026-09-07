@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENOVATE_VERSION: "44.52.1"
+  RENOVATE_VERSION: "44.66.1"
 
 jobs:
   renovate:
@@ -21,7 +21,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Get bot user identity
         uses: ./.github/actions/get-bot-identity
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload active-branch export
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: renovate-active-branches
           path: /tmp/renovate-active-branches.json

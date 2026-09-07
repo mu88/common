@@ -14,7 +14,7 @@ runs:
 
   steps:
     - name: Check out code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
     - name: Create helper variable with .NET SDK version for Docker image tagging
       shell: bash
@@ -42,7 +42,7 @@ runs:
         echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
 
     - name: Pre-build dev container image '${{ inputs.dev-container-name }}'
-      uses: devcontainers/ci@v0.3
+      uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
       env:
         DOTNET_SDK_VERSION: ${{ inputs.dotnet-sdk-version }}
       with:

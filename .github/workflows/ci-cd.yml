@@ -92,10 +92,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -109,7 +109,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -122,7 +122,7 @@ jobs:
         run: dotnet restore
 
       - name: Restore SonarQube packages from cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           key: sonar-${{ runner.os }}
           path: ~/.sonar/cache
@@ -160,7 +160,7 @@ jobs:
         run: dotnet tool run dotnet-sonarscanner end /d:sonar.token=${{ env.ENV_SONAR_TOKEN }}
 
       - name: Publish test report
-        uses: dorny/test-reporter@v3
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -174,10 +174,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -185,7 +185,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -201,7 +201,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=Performance' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@v3
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -215,10 +215,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
@@ -226,7 +226,7 @@ jobs:
 
       - name: Login to Container registry
         if: inputs.requires-docker-login == true
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -242,7 +242,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=System' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@v3
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -263,12 +263,12 @@ jobs:
     
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0 # otherwise Versionize cannot read the Git history and the pre-release version cannot be bumped
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           global-json-file: global.json
 
@@ -383,17 +383,17 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           cache: ${{ inputs.dotnet-cache-dependencies-via-lock-file }}
           cache-dependency-path: '**/packages.lock.json'
           global-json-file: global.json
 
       - name: Set up Docker
-        uses: docker/setup-docker-action@v5
+        uses: docker/setup-docker-action@77e84dbf09b47d1e29270283c22f16145aa85ca1 # v5
         with:
           daemon-config: |
             {
@@ -404,7 +404,7 @@ jobs:
             }
 
       - name: Login to Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -540,14 +540,14 @@ jobs:
 
     steps:
       - name: Login to Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         # On transient Rekor failures, allow non-release builds to proceed; releases must have a valid attestation
         continue-on-error: ${{ needs.determine_release_information.outputs.is_release != 'true' }}
         with:
@@ -556,14 +556,14 @@ jobs:
           subject-digest: ${{ matrix.digest }}
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ needs.docker.outputs.image_name }}@${{ matrix.digest }}
           output-file: sbom.json
 
       - name: Attest SBOM
         # Replaces deprecated actions/attest-sbom@v4 (see https://github.com/actions/attest-sbom)
-        uses: actions/attest@v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         # On transient Rekor failures, allow non-release builds to proceed; releases must have a valid attestation
         continue-on-error: ${{ needs.determine_release_information.outputs.is_release != 'true' }}
         with:

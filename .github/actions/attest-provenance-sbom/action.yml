@@ -20,19 +20,19 @@ runs:
 
   steps:
     - name: Attest build provenance
-      uses: actions/attest-build-provenance@v4
+      uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
       if: ${{ inputs.is-release == 'true' }}
       with:
         subject-path: ${{ inputs.subject-path }}
 
     - name: Generate SBOM
-      uses: anchore/sbom-action@v0
+      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
       with:
         output-file: ${{ inputs.sbom-file }}
         path: ${{ inputs.sbom-path }}
 
     - name: Attest SBOM
-      uses: actions/attest-sbom@v4
+      uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
       if: ${{ inputs.is-release == 'true' }}
       with:
         sbom-path: ${{ inputs.sbom-file }}
