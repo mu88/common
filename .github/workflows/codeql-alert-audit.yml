@@ -1,0 +1,56 @@
+name: CodeQL Alert Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: codeql-alert-audit
+  cancel-in-progress: false
+
+jobs:
+  check-consumer-codeql-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Get bot user identity
+        uses: ./.github/actions/get-bot-identity
+        id: bot-identity
+        with:
+          client-id: ${{ vars.MU88_BOT_APP_ID }}
+          private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
+
+      # Cache keys are immutable, so state is persisted as a "sliding" cache: every run
+      # saves under a unique key, and restores by falling back to the most recent key
+      # matching the shared prefix. Stale entries simply age out (7-day inactivity
+      # eviction), no cleanup step or git commit required.
+      - name: Restore audit state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: codeql-alert-audit-state.json
+          key: codeql-alert-audit-state-${{ github.run_id }}
+          restore-keys: |
+            codeql-alert-audit-state-
+
+      - name: Check consumer repositories for new CodeQL alerts
+        shell: pwsh
+        env:
+          BOT_TOKEN: ${{ steps.bot-identity.outputs.token }}
+        run: |
+          .github/scripts/Get-CodeScanningAlertRegressions.ps1 `
+            -Token $env:BOT_TOKEN `
+            -StateFilePath codeql-alert-audit-state.json
+
+      - name: Save audit state
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: codeql-alert-audit-state.json
+          key: codeql-alert-audit-state-${{ github.run_id }}
