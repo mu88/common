@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
     "ghcr.io/devcontainers/features/dotnet:2": {
-      "version": "${localEnv:DOTNET_SDK_VERSION:10.0.400}"
+      "version": "${localEnv:DOTNET_SDK_VERSION:10.0.401}"
     },
     "ghcr.io/devcontainers/features/powershell:2": {}
   },
