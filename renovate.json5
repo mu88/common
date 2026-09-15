@@ -14,7 +14,6 @@
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/docker-in-docker",
         "ghcr.io/devcontainers/features/powershell",
-        "ghcr.io/renovatebot/renovate",
         "mcr.microsoft.com/devcontainers/typescript-node",
         "mcr.microsoft.com/dotnet/sdk"
       ],
@@ -67,7 +66,7 @@
       "packageNameTemplate": "dotnet-sdk"
     },
     {
-      "description": "Track the Renovate Docker image version used in GitHub Actions workflows",
+      "description": "Track the Renovate version used in GitHub Actions workflows via GitHub releases, which provide a reliable release timestamp so minimumReleaseAge is actually enforced",
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github\\/workflows\\/renovate\\.yml$/",
@@ -76,8 +75,8 @@
       "matchStrings": [
         "RENOVATE_VERSION:\\s*\"(?<currentValue>[\\d.]+)\""
       ],
-      "datasourceTemplate": "docker",
-      "packageNameTemplate": "ghcr.io/renovatebot/renovate"
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "renovatebot/renovate"
     }
   ]
 }

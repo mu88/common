@@ -104,12 +104,18 @@
       ]
     },
     {
-      "description": "Immediately merge new digests from mu88/common as they don't have a timestamp",
+      "description": "Only sync mu88/common digest updates in a Monday-evening window, after the day's regular Renovate runs have settled, to batch same-day upstream commits into one downstream update",
       "matchDepNames": [
         "mu88/common"
       ],
       "matchUpdateTypes": [
         "digest"
+      ],
+      "schedule": [
+        "* 18-20 * * 1"
+      ],
+      "automergeSchedule": [
+        "* 18-20 * * 1"
       ],
       "minimumReleaseAge": "0 minutes"
     },
