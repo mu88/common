@@ -118,6 +118,20 @@ jobs:
       - name: Restore .NET tools
         run: dotnet tool restore
 
+      - name: Restore LibMan-managed client-side libraries
+        if: hashFiles('**/libman.json') != ''
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter libman.json | ForEach-Object {
+            Push-Location $_.DirectoryName
+            try {
+              dotnet tool run libman restore
+              if ($LASTEXITCODE -ne 0) { Write-Error "libman restore failed with exit code $LASTEXITCODE"; exit $LASTEXITCODE }
+            } finally {
+              Pop-Location
+            }
+          }
+
       - name: Restore NuGet dependencies
         run: dotnet restore
 
@@ -191,6 +205,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Restore LibMan-managed client-side libraries
+        if: hashFiles('**/libman.json') != ''
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          Get-ChildItem -Path . -Recurse -Filter libman.json | ForEach-Object {
+            Push-Location $_.DirectoryName
+            try {
+              dotnet tool run libman restore
+              if ($LASTEXITCODE -ne 0) { Write-Error "libman restore failed with exit code $LASTEXITCODE"; exit $LASTEXITCODE }
+            } finally {
+              Pop-Location
+            }
+          }
+
       - name: Restore NuGet dependencies
         run: dotnet restore
 
@@ -231,6 +260,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore LibMan-managed client-side libraries
+        if: hashFiles('**/libman.json') != ''
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          Get-ChildItem -Path . -Recurse -Filter libman.json | ForEach-Object {
+            Push-Location $_.DirectoryName
+            try {
+              dotnet tool run libman restore
+              if ($LASTEXITCODE -ne 0) { Write-Error "libman restore failed with exit code $LASTEXITCODE"; exit $LASTEXITCODE }
+            } finally {
+              Pop-Location
+            }
+          }
 
       - name: Restore NuGet dependencies
         run: dotnet restore
@@ -409,6 +453,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore LibMan-managed client-side libraries
+        if: hashFiles('**/libman.json') != ''
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          Get-ChildItem -Path . -Recurse -Filter libman.json | ForEach-Object {
+            Push-Location $_.DirectoryName
+            try {
+              dotnet tool run libman restore
+              if ($LASTEXITCODE -ne 0) { Write-Error "libman restore failed with exit code $LASTEXITCODE"; exit $LASTEXITCODE }
+            } finally {
+              Pop-Location
+            }
+          }
 
       - name: Restore NuGet dependencies
         run: dotnet restore
