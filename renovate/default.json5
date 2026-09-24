@@ -84,6 +84,21 @@
       "minimumReleaseAge": null
     },
     {
+      // Workaround for renovatebot/renovate#45236: the branch-stage stability check reads
+      // `upgrade.releaseTimestamp`, which Renovate never sets for digest updates (only the
+      // lookup stage ages them, against the matching version's timestamp). Without this,
+      // digest updates for moving tags (e.g. actions/setup-java@v6) stay pending forever
+      // once they pass minimumReleaseAge, because the branch stage can't see the timestamp.
+      "description": "Prevent the branch-stage stability check from permanently pending digest updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
       "description": "Bump bare NuGet versions to the latest release (see https://docs.renovatebot.com/modules/manager/nuget/#getting-updates-for-non-pinned-bare-versions)",
       "matchManagers": [
         "nuget"
