@@ -201,6 +201,26 @@
         "System.Text.Json"
       ],
       "enabled": false
+    },
+    {
+      // Renovate has no native LibMan manager yet (we proposed one: https://github.com/renovatebot/renovate/discussions/46445).
+      // Until that lands, the customManagers entry below resolves LibMan libraries via the npm datasource as an
+      // approximation, since it cannot tell which LibMan "provider" (cdnjs/jsdelivr/unpkg) a given entry actually
+      // uses - see that customManagers entry's own comment for why this is imprecise for cdnjs-provided libraries.
+      // Force a manual review for every update coming out of that approximation instead of letting it auto-merge
+      // unattended, since we have no correctness guarantee that the npm version we bump to actually exists at the
+      // LibMan provider that will really be queried by "libman restore" in CI.
+      "description": "Require manual review for LibMan libraries resolved via the npm-approximation customManagers regex (no automerge)",
+      "matchFileNames": [
+        "**/libman.json"
+      ],
+      "matchDatasources": [
+        "npm"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "libman-npm-approximation"
+      ]
     }
   ],
   "customManagers": [
@@ -263,6 +283,35 @@
       ],
       "datasourceTemplate": "dotnet-version",
       "packageNameTemplate": "dotnet-sdk"
+    },
+    {
+      // Track client-side libraries pinned in Microsoft LibMan (libman.json) manifests. Renovate has no native
+      // LibMan manager (proposed: https://github.com/renovatebot/renovate/discussions/46445) and no datasource for
+      // the "jsdelivr"/"unpkg" LibMan providers either, so this is a deliberate, TEMPORARY workaround, not a
+      // correct implementation - remove it once/if the discussion above results in native support.
+      //
+      // The regex below matches every `"library": "<name>@<version>"` entry in libman.json, regardless of the
+      // sibling "provider"/"defaultProvider" field, and always resolves versions via the npm datasource. That is
+      // accurate for the "jsdelivr"/"unpkg" providers (they mirror npm packages under the same name), but it is
+      // only an APPROXIMATION for the "cdnjs" provider: npm's published versions are not guaranteed to match what's
+      // actually available on cdnjs. As of 2026-09-24 this affects exactly two entries across our repos - spin.js
+      // (ThisIsYourLife) and font-awesome (BlazorFotoManager) - both verified to exist under an identical name on
+      // npm today, but that alignment isn't guaranteed to hold for future versions. Do not extend this pattern to
+      // a library that has no identically-named npm package. The companion packageRule above disables automerge
+      // for every update this manager produces, so a human confirms the version is actually restorable via
+      // "libman restore" (which queries the REAL provider, not npm) before it gets merged.
+      //
+      // "filesystem"-provider entries reference a local path instead of "name@version" and are not matched here,
+      // which is the intended behavior (there is no version to track for those).
+      "customType": "regex",
+      "description": "LibMan libraries, declared as \"<name>@<version>\" in libman.json, resolved via npm as an approximation (see comment above) until Renovate has native LibMan support.",
+      "managerFilePatterns": [
+        "/(^|/)libman\\.json$/"
+      ],
+      "matchStrings": [
+        "\"library\"\\s*:\\s*\"(?<depName>.+)@(?<currentValue>[^@\"]+)\""
+      ],
+      "datasourceTemplate": "npm"
     }
   ]
 }
