@@ -618,6 +618,7 @@ jobs:
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           dependency-snapshot: true
+          dependency-snapshot-correlator: ${{ needs.docker.outputs.image_name }}@${{ matrix.digest }}
           image: ${{ needs.docker.outputs.image_name }}@${{ matrix.digest }}
           output-file: sbom.json
 
