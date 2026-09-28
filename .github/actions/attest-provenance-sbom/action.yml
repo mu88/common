@@ -11,6 +11,9 @@ inputs:
   sbom-path:
     description: 'Path to the SBOM file to generate and attest'
     required: true
+  sbom-config-file:
+    description: 'Optional Syft configuration file (e.g. to exclude paths from the generated SBOM)'
+    required: false
   subject-path:
     description: 'Path to the subject artifact to attest (e.g. the built executable)'
     required: true
@@ -28,6 +31,7 @@ runs:
     - name: Generate SBOM
       uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
       with:
+        config: ${{ inputs.sbom-config-file }}
         dependency-snapshot: true
         output-file: ${{ inputs.sbom-file }}
         path: ${{ inputs.sbom-path }}
