@@ -312,6 +312,22 @@
         "\"library\"\\s*:\\s*\"(?<depName>.+)@(?<currentValue>[^@\"]+)\""
       ],
       "datasourceTemplate": "npm"
+    },
+    {
+      // git-refs tracks the ref in currentValue and its immutable commit SHA in currentDigest.
+      // See https://docs.renovatebot.com/modules/datasource/git-refs/ and https://docs.renovatebot.com/modules/manager/regex/.
+      "customType": "regex",
+      "description": "Track SHA-pinned shared Versionize configuration against mu88/common main",
+      "managerFilePatterns": [
+        "/^\\.versionize$/"
+      ],
+      "matchStrings": [
+        "\"extends\"\\s*:\\s*\"https://raw\\.githubusercontent\\.com/mu88/common/(?<currentDigest>[a-f0-9]{40})/versionize/\\.versionize\""
+      ],
+      "currentValueTemplate": "main",
+      "depNameTemplate": "mu88/common",
+      "packageNameTemplate": "https://github.com/mu88/common",
+      "datasourceTemplate": "git-refs"
     }
   ]
 }

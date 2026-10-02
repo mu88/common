@@ -108,6 +108,17 @@ A shared [Renovate](https://docs.renovatebot.com/) preset (`renovate/default.jso
 - Extended waiting periods for .NET SDK/runtime updates to allow dev machines to catch up
 - Disabling automatic major .NET updates (handled manually)
 - Custom managers for detecting .NET SDK versions in `devcontainer.json`, `.csproj`, Docker images, and more
+- A Versionize config at `versionize/.versionize`, consumed through SHA-pinned `extends` URLs and updated by Renovate
+
+Each consuming repository keeps a root `.versionize` file that extends the shared config:
+
+```json
+{
+  "extends": "https://raw.githubusercontent.com/mu88/common/{commit-sha}/versionize/.versionize"
+}
+```
+
+Replace `{commit-sha}` with the commit containing the shared config; Renovate keeps the immutable SHA current.
 
 Extend it from any repo's `renovate.json5`:
 
