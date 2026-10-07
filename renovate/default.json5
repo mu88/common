@@ -328,22 +328,6 @@
       "depNameTemplate": "mu88/common",
       "packageNameTemplate": "https://github.com/mu88/common",
       "datasourceTemplate": "git-refs"
-    },
-    {
-      // JSONata custom manager for testcontainers.json files. This allows Renovate to track Docker image
-      // versions declared in testcontainers.json and bump them automatically. The JSONata expression iterates
-      // over top-level keys (image names), extracting the nested "image" and "tag" fields as a package name
-      // and version, respectively. For example: {"postgres": {"image": "postgres", "tag": "18-alpine"}}
-      // becomes a Renovate dependency on datasource "docker" for package "postgres" at version "18-alpine".
-      "customType": "jsonata",
-      "description": "Track Docker images in testcontainers.json for automated updates across all repos",
-      "fileFormat": "json",
-      "managerFilePatterns": [
-        "/(^|/)testcontainers\\.json$/"
-      ],
-      "matchStrings": [
-        "$each($, function($v, $n) { {\"depName\": $v.image, \"currentValue\": $v.tag, \"datasourceTemplate\": \"docker\"} })"
-      ]
     }
   ]
 }
