@@ -66,6 +66,17 @@
       "minimumReleaseAge": "14 days"
     },
     {
+      // MCR images lack releaseTimestamp (Renovate only supports Docker Hub): renovatebot/renovate#37196, #38656
+      "description": "MCR Docker images don't return a release timestamp, so allow updates without one",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "mcr.microsoft.com/**"
+      ],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
       "description": "Pin GitHub Actions to immutable commit SHAs",
       "matchManagers": [
         "github-actions"
