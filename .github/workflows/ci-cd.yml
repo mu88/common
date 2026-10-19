@@ -174,7 +174,7 @@ jobs:
         run: dotnet tool run dotnet-sonarscanner end /d:sonar.token=${{ env.ENV_SONAR_TOKEN }}
 
       - name: Publish test report
-        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
+        uses: dorny/test-reporter@d1b5dff021aa968b288b02285a8bf47471c5928a # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -230,7 +230,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=Performance' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
+        uses: dorny/test-reporter@d1b5dff021aa968b288b02285a8bf47471c5928a # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
@@ -286,7 +286,7 @@ jobs:
         run: dotnet test --no-build --filter 'TestCategory=System' --logger trx
 
       - name: Publish test report
-        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3
+        uses: dorny/test-reporter@d1b5dff021aa968b288b02285a8bf47471c5928a # v3
         if: ${{ !cancelled() }} 
         with:
           fail-on-empty: false
