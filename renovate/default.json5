@@ -249,7 +249,7 @@
         "/^\\S*\\.csproj$/"
       ],
       "matchStrings": [
-        "<ContainerBaseImage>(?<packageName>\\S+):(?<currentValue>\\S+)<\/ContainerBaseImage>"
+        "<ContainerBaseImage>(?<packageName>(?:[^\\/@:\\s]+(?::\\d+)?\\/)?[^@:\\s]+(?:\\/[^@:\\s]+)*):(?<currentValue>[^@\\s<]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?<\/ContainerBaseImage>"
       ],
       "datasourceTemplate": "docker"
     },
