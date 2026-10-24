@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENOVATE_VERSION: "44.135.0"
+  RENOVATE_VERSION: "44.149.2"
 
 jobs:
   renovate:
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload active-branch export
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: renovate-active-branches
           path: /tmp/renovate-active-branches.json
