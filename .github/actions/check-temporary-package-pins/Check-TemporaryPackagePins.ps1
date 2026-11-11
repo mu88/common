@@ -16,6 +16,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
+Import-Module (Join-Path $PSScriptRoot 'TemporaryPackagePinAudit.psm1') -Force
+
 function Fail {
     param(
         [Parameter(Mandatory = $true)]
@@ -59,20 +61,37 @@ function Test-PinRemovable {
         Set-Content -LiteralPath $tempPackagePath -Value $packageDocument.OuterXml -Encoding utf8NoBOM
 
         $tempSolutionPath = Join-Path $tempRoot $SolutionRelativePath
+        $auditErrorPath = Join-Path $tempRoot 'audit-error.txt'
         $nativePreference = $PSNativeCommandUseErrorActionPreference
         try {
             $PSNativeCommandUseErrorActionPreference = $false
-            $null = & dotnet restore $tempSolutionPath --nologo 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                return $false
+            $restoreOutput = & dotnet restore $tempSolutionPath --nologo 2>&1 | Out-String
+            $restoreExitCode = $LASTEXITCODE
+            if ($restoreOutput -match 'NU190[05]') {
+                Fail -Title 'Vulnerability audit failed' -Message "Audit data is unavailable for '$PackageName': NuGet reported NU1900 or NU1905 during restore."
             }
 
-            $auditOutput = (& dotnet list $tempSolutionPath package --vulnerable --include-transitive 2>&1) -join [Environment]::NewLine
-            if (($auditOutput -match 'NU1900') -and ($auditOutput -notmatch 'NU190[1-4]')) {
-                Fail -Title 'Vulnerability audit failed' -Message "Dotnet audit could not retrieve vulnerability data for '$PackageName'."
+            if ($restoreExitCode -ne 0) {
+                return 'Indeterminate'
             }
 
-            return $auditOutput -notmatch 'NU190[1-4]'
+            $auditOutput = & dotnet list $tempSolutionPath package --vulnerable --include-transitive --format json --output-version 1 2>$auditErrorPath
+            $auditExitCode = $LASTEXITCODE
+            $auditJson = $auditOutput -join [Environment]::NewLine
+            $auditErrors = Get-Content -LiteralPath $auditErrorPath -Raw
+
+            try {
+                $vulnerabilityCount = Get-AuditVulnerabilityCount -ExitCode $auditExitCode -StandardOutput $auditJson -StandardError $auditErrors
+            }
+            catch {
+                Fail -Title 'Vulnerability audit failed' -Message "Dotnet audit is inconclusive for '$PackageName': $($_.Exception.Message)"
+            }
+
+            if ($vulnerabilityCount -eq 0) {
+                return 'Removable'
+            }
+
+            return 'Needed'
         }
         finally {
             $PSNativeCommandUseErrorActionPreference = $nativePreference
@@ -141,11 +160,18 @@ if ($pins.Count -eq 0) {
 }
 
 foreach ($pin in $pins) {
-    if (Test-PinRemovable -WorkspaceRoot $WorkspaceRoot -SolutionRelativePath $solutionRelativePath -PackageRelativePath $packageRelativePath -PackageName $pin.Name) {
-        Fail -Title 'Remove temporary pin' -Message "Temporary pin '$($pin.Name)' ($($pin.Version)) can be removed. Restore and vulnerability scan stay clean without it."
+    $pinState = Test-PinRemovable -WorkspaceRoot $WorkspaceRoot -SolutionRelativePath $solutionRelativePath -PackageRelativePath $packageRelativePath -PackageName $pin.Name
+    switch ($pinState) {
+        'Removable' {
+            Fail -Title 'Remove temporary pin' -Message "Temporary pin '$($pin.Name)' ($($pin.Version)) can be removed. Restore and vulnerability scan stay clean without it."
+        }
+        'Indeterminate' {
+            Write-Host "::warning title=Temporary pin indeterminate::Temporary pin '$($pin.Name)' ($($pin.Version)) could not be evaluated because restore fails without it. Any restore failure, including network errors, is treated as indeterminate. The pin is kept unchanged."
+        }
+        default {
+            Write-Host "Temporary pin '$($pin.Name)' ($($pin.Version)) is still needed."
+        }
     }
-
-    Write-Host "Temporary pin '$($pin.Name)' ($($pin.Version)) is still needed."
 }
 
 exit 0
