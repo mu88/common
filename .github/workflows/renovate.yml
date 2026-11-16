@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 env:
-  RENOVATE_VERSION: "44.201.1"
+  RENOVATE_VERSION: "44.202.0"
 
 jobs:
   renovate:
