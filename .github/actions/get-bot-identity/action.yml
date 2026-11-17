@@ -8,6 +8,10 @@ inputs:
   private-key:
     description: 'GitHub App private key'
     required: true
+  repositories:
+    description: 'Comma- or newline-separated repositories to grant access to; empty grants access to all installation repositories'
+    required: false
+    default: ''
 
 outputs:
   name:
@@ -33,6 +37,7 @@ runs:
         client-id: ${{ inputs.client-id }}
         private-key: ${{ inputs.private-key }}
         owner: "mu88"
+        repositories: ${{ inputs.repositories }}
 
     - name: Get bot user identity
       id: identity
