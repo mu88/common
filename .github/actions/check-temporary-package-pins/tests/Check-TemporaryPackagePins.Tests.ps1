@@ -223,12 +223,13 @@ $PackageVersions
         function Invoke-PinCheck {
             param(
                 [Parameter(Mandatory = $true)] [string]$Workspace,
-                [string]$ScriptPath = $scriptPath
+                [string]$ScriptPath = $scriptPath,
+                [string]$SolutionPath = 'App.csproj'
             )
 
             Push-Location -LiteralPath $Workspace
             try {
-                $output = & pwsh -NoProfile -File $ScriptPath -WorkspaceRoot $Workspace -SolutionPath 'App.csproj' 2>&1 | Out-String
+                $output = & pwsh -NoProfile -File $ScriptPath -WorkspaceRoot $Workspace -SolutionPath $SolutionPath 2>&1 | Out-String
                 return [pscustomobject]@{
                     ExitCode = $LASTEXITCODE
                     Output = $output
@@ -257,6 +258,32 @@ $PackageVersions
 
     AfterAll {
         Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'checks a temporary pin using the workspace directory as the solution path' {
+        # Arrange
+        $workspace = New-VulnerableWorkspace -Name 'workspace-solution-path'
+
+        # Act
+        $result = Invoke-PinCheck -Workspace $workspace -SolutionPath '.'
+
+        # Assert
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'is still needed'
+    }
+
+    It 'skips the audit when the workspace has no temporary pins' {
+        # Arrange
+        $workspace = New-Workspace -Name 'no-pins' `
+            -PackageVersions '<PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />' `
+            -ProjectReferences '<PackageReference Include="Microsoft.Extensions.Logging" />'
+
+        # Act
+        $result = Invoke-PinCheck -Workspace $workspace -SolutionPath '.'
+
+        # Assert
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'No temporary package pins found'
     }
 
     It 'keeps a vulnerable pin until its removal is checked (<Name>)' -ForEach $auditVariants {

@@ -316,6 +316,20 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Check out shared actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .workflow-source
+          sparse-checkout: .github/actions/check-temporary-package-pins
+          persist-credentials: false
+
+      - name: Enforce temporary package pins
+        uses: ./.workflow-source/.github/actions/check-temporary-package-pins
+        with:
+          solution-path: .
+
       - name: Restore .NET tools
         run: dotnet tool restore
 
