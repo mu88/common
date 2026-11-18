@@ -20,12 +20,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Get bot user identity
-        uses: ./.github/actions/get-bot-identity
-        id: bot-identity
+      - name: Create read-only GitHub App token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
         with:
           client-id: ${{ vars.MU88_BOT_APP_ID }}
           private-key: ${{ secrets.MU88_BOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-security-events: read
 
       # Cache keys are immutable, so state is persisted as a "sliding" cache: every run
       # saves under a unique key, and restores by falling back to the most recent key
@@ -42,7 +44,7 @@ jobs:
       - name: Check consumer repositories for new CodeQL alerts
         shell: pwsh
         env:
-          BOT_TOKEN: ${{ steps.bot-identity.outputs.token }}
+          BOT_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           .github/scripts/Get-CodeScanningAlertRegressions.ps1 `
             -Token $env:BOT_TOKEN `
