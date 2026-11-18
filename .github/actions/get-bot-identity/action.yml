@@ -12,6 +12,10 @@ inputs:
     description: 'Comma- or newline-separated repositories to grant access to; empty grants access to all installation repositories'
     required: false
     default: ''
+  permission-contents:
+    description: 'Contents permission (read or write); empty inherits all installation permissions'
+    required: false
+    default: ''
 
 outputs:
   name:
@@ -38,6 +42,7 @@ runs:
         private-key: ${{ inputs.private-key }}
         owner: "mu88"
         repositories: ${{ inputs.repositories }}
+        permission-contents: ${{ inputs.permission-contents }}
 
     - name: Get bot user identity
       id: identity
