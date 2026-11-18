@@ -43,7 +43,10 @@ function Test-PinRemovable {
         [string]$PackageRelativePath,
 
         [Parameter(Mandatory = $true)]
-        [string]$PackageName
+        [string]$PackageName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PinMarker
     )
 
     $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("mu88-temp-pin-" + [guid]::NewGuid().ToString('N'))
@@ -60,12 +63,25 @@ function Test-PinRemovable {
             ForEach-Object { [void]$_.ParentNode.RemoveChild($_) }
         Set-Content -LiteralPath $tempPackagePath -Value $packageDocument.OuterXml -Encoding utf8NoBOM
 
+        Get-ChildItem -LiteralPath $tempRoot -Recurse -Filter '*.csproj' -File | ForEach-Object {
+            [xml]$projectDocument = Get-Content -LiteralPath $_.FullName -Raw
+            $markedReferences = @($projectDocument.SelectNodes("//*[local-name()='PackageReference']") | Where-Object {
+                $_.GetAttribute('Include') -ieq $PackageName -and
+                $_.PreviousSibling.NodeType -eq [System.Xml.XmlNodeType]::Comment -and
+                $_.PreviousSibling.Value.Contains($PinMarker)
+            })
+            if ($markedReferences.Count -gt 0) {
+                $markedReferences | ForEach-Object { [void]$_.ParentNode.RemoveChild($_) }
+                Set-Content -LiteralPath $_.FullName -Value $projectDocument.OuterXml -Encoding utf8NoBOM
+            }
+        }
+
         $tempSolutionPath = Join-Path $tempRoot $SolutionRelativePath
         $auditErrorPath = Join-Path $tempRoot 'audit-error.txt'
         $nativePreference = $PSNativeCommandUseErrorActionPreference
         try {
             $PSNativeCommandUseErrorActionPreference = $false
-            $restoreOutput = & dotnet restore $tempSolutionPath --nologo 2>&1 | Out-String
+            $restoreOutput = & dotnet restore $tempSolutionPath --nologo --force-evaluate -p:RestoreLockedMode=false -p:NuGetAudit=false 2>&1 | Out-String
             $restoreExitCode = $LASTEXITCODE
             if ($restoreOutput -match 'NU190[05]') {
                 Fail -Title 'Vulnerability audit failed' -Message "Audit data is unavailable for '$PackageName': NuGet reported NU1900 or NU1905 during restore."
@@ -75,7 +91,7 @@ function Test-PinRemovable {
                 return 'Indeterminate'
             }
 
-            $auditOutput = & dotnet list $tempSolutionPath package --vulnerable --include-transitive --format json --output-version 1 2>$auditErrorPath
+            $auditOutput = & dotnet list $tempSolutionPath package --vulnerable --include-transitive --format json --output-version 1 --no-restore 2>$auditErrorPath
             $auditExitCode = $LASTEXITCODE
             $auditJson = $auditOutput -join [Environment]::NewLine
             $auditErrors = Get-Content -LiteralPath $auditErrorPath -Raw
@@ -160,7 +176,7 @@ if ($pins.Count -eq 0) {
 }
 
 foreach ($pin in $pins) {
-    $pinState = Test-PinRemovable -WorkspaceRoot $WorkspaceRoot -SolutionRelativePath $solutionRelativePath -PackageRelativePath $packageRelativePath -PackageName $pin.Name
+    $pinState = Test-PinRemovable -WorkspaceRoot $WorkspaceRoot -SolutionRelativePath $solutionRelativePath -PackageRelativePath $packageRelativePath -PackageName $pin.Name -PinMarker $PinMarker
     switch ($pinState) {
         'Removable' {
             Fail -Title 'Remove temporary pin' -Message "Temporary pin '$($pin.Name)' ($($pin.Version)) can be removed. Restore and vulnerability scan stay clean without it."

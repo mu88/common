@@ -304,6 +304,36 @@ $PackageVersions
         $result.Output | Should -Match 'can be removed'
     }
 
+    It 'detects a removable marked direct pin with locked restore enabled' {
+        # Arrange
+        $workspace = New-Workspace -Name 'direct-pin-locked' -PackageVersions $cleanPackageVersions `
+            -ProjectReferences '<PackageReference Include="Microsoft.Extensions.Logging" /><!-- TEMP-PIN: test --><PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />' `
+            -ProjectProperties '<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile><RestoreLockedMode>true</RestoreLockedMode>'
+        Get-RestoredLibraries -Workspace $workspace | Should -Contain 'Microsoft.Extensions.Logging.Abstractions/10.0.0'
+
+        # Act
+        $result = Invoke-PinCheck -Workspace $workspace
+
+        # Assert
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'can be removed'
+    }
+
+    It 'keeps a marked direct pin when the transitive dependency is vulnerable' {
+        # Arrange
+        $workspace = New-Workspace -Name 'direct-pin-vulnerable' -PackageVersions $vulnerablePackageVersions `
+            -ProjectReferences '<PackageReference Include="Microsoft.AspNetCore.Mvc.Core" /><!-- TEMP-PIN: test --><PackageReference Include="Microsoft.AspNetCore.WebUtilities" />' `
+            -ProjectProperties '<TreatWarningsAsErrors>true</TreatWarningsAsErrors>'
+
+        # Act
+        $result = Invoke-PinCheck -Workspace $workspace
+
+        # Assert
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'is still needed'
+        $result.Output | Should -Not -Match 'indeterminate'
+    }
+
     It 'keeps the pin unchanged with an indeterminate warning when restore fails without it' {
         # Arrange
         $workspace = New-Workspace -Name 'restore-fails' -PackageVersions @'
