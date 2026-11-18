@@ -1,0 +1,5 @@
+paths:
+  .github/workflows/ci-cd.yml:
+    ignore:
+      # actionlint does not yet support GitHub's same-commit $/ syntax: https://github.com/rhysd/actionlint/issues/711
+      - 'specifying action "\$/\.github/actions/check-temporary-package-pins" in invalid format because ref is missing'
