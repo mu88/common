@@ -10,6 +10,19 @@
   },
   "packageRules": [
     {
+      "description": "Batch Renovate self-updates into a short Monday window",
+      "matchPackageNames": [
+        "renovatebot/renovate"
+      ],
+      "schedule": [
+        "* 17 * * 1"
+      ],
+      "automergeSchedule": [
+        "* 17 * * 1"
+      ],
+      "updateNotScheduled": false
+    },
+    {
       "description": "Unfortunately, these packages do not return a release timestamp. 'minimumReleaseAgeBehaviour: \"timestamp-optional\"' disables the timestamp requirement for them while still honoring minimumReleaseAge for updates that do report a timestamp.",
       "matchPackageNames": [
         "ghcr.io/devcontainers/features/docker-in-docker",
